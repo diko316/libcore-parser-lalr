@@ -1,0 +1,52 @@
+{
+  "name": "libcore-parser-lalr",
+  "version": "0.0.1",
+  "description": "LR Parser (my way)",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prestart": "node_modules/.bin/webpack --hide-modules",
+    "start": "node webpack.dev.server.js",
+    "build": "BUILD_MODE=production && node_modules/.bin/webpack --hide-modules",
+    "build-optimized": "BUILD_MODE=compressed && node_modules/.bin/webpack --hide-modules"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://diko316@github.com/diko316/libcore-parser-lalr.git"
+  },
+  "keywords": [
+    "libcore",
+    "Parser",
+    "ES5",
+    "LALR",
+    "LALR(1)",
+    "LALR k(1)",
+    "DFA",
+    "Finite State Machine",
+    "FSM"
+  ],
+  "author": "Diko Tech Slave",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/diko316/libcore-parser-lalr/issues"
+  },
+  "homepage": "https://github.com/diko316/libcore-parser-lalr#readme",
+  "devDependencies": {
+    "css-loader": "^0.26.2",
+    "express": "^4.14.1",
+    "extract-text-webpack-plugin": "^2.0.0",
+    "file-loader": "^0.10.1",
+    "jshint": "^2.9.4",
+    "jshint-loader": "^0.8.4",
+    "less": "^2.7.2",
+    "less-loader": "^2.2.3",
+    "style-loader": "^0.13.2",
+    "url-loader": "^0.5.8",
+    "webpack": "^2.2.1",
+    "webpack-dev-middleware": "^1.10.1",
+    "webpack-hot-middleware": "^2.17.1"
+  },
+  "dependencies": {
+    "libcore-tokenizer": "^0.0.8"
+  }
+}

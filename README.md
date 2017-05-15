@@ -1,2 +1,2 @@
 # libcore-parser-lalr
-LALR(1) Parser based from given LALR grammar
+LALR(1) Parser for LALR grammar
