@@ -4,7 +4,7 @@
   "description": "LR Parser (my way)",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "export BUILD_MODE=unit-test && xvfb-run node_modules/.bin/karma start karma.config.js",
     "prestart": "node_modules/.bin/webpack --hide-modules",
     "start": "node webpack.dev.server.js",
     "build": "BUILD_MODE=production && node_modules/.bin/webpack --hide-modules",
@@ -36,8 +36,14 @@
     "express": "^4.14.1",
     "extract-text-webpack-plugin": "^2.0.0",
     "file-loader": "^0.10.1",
+    "jasmine-core": "^2.6.1",
     "jshint": "^2.9.4",
     "jshint-loader": "^0.8.4",
+    "karma": "^1.7.0",
+    "karma-firefox-launcher": "^1.0.1",
+    "karma-jasmine": "^1.1.0",
+    "karma-mocha-reporter": "^2.2.3",
+    "karma-webpack": "^2.0.3",
     "less": "^2.7.2",
     "less-loader": "^2.2.3",
     "style-loader": "^0.13.2",
@@ -47,6 +53,6 @@
     "webpack-hot-middleware": "^2.17.1"
   },
   "dependencies": {
-    "libcore-tokenizer": "^0.0.8"
+    "libcore-tokenizer": "^0.0.10"
   }
 }

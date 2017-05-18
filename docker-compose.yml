@@ -21,7 +21,7 @@ services:
     command: bin/autosync-builds.sh
     
     environment:
-     - BUILD_MODE=production
+     - BUILD_MODE=development
      - SOURCE_MOD_PATH=/opt/app-source-modification
   
     volumes:
