@@ -22,6 +22,20 @@ module.exports = {
         libraryTarget: 'umd',
         umdNamedDefine: true
     },
+    externals: {
+        "libcore": {
+            commonjs: "libcore",
+            commonjs2: "libcore",
+            amd: "libcore",
+            root: "libcore"
+        },
+        "libcore-tokenizer": {
+            commonjs: "libcore-tokenizer",
+            commonjs2: "libcore-tokenizer",
+            amd: "libcore-tokenizer",
+            root: "libcoreTokenizer"
+        }
+    },
     module: {
         rules: [{
             test: /\.css$/,

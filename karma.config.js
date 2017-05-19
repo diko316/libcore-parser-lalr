@@ -18,6 +18,8 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
+        'node_modules/libcore/dist/libcore.js',
+        'node_modules/libcore-tokenizer/dist/libcore-tokenizer.js',
         'src/test/index.js'
     ],
 

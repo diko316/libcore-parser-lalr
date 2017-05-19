@@ -74,16 +74,6 @@ StateMap.prototype = {
             object = lib.object;
         var start, states, anchors, ends;
         
-        if (lib.string(definition)) {
-            try {
-                definition = JSON.parse(definition);
-            }
-            catch (e) {
-                throw new Error("Invalid JSON String definition parameter.");
-            }
-        }
-        
-        
         if (!object(definition)) {
             throw new Error("Invalid Object definition parameter.");
         }

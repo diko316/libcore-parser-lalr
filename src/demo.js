@@ -37,6 +37,8 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     console.log(lexeme.name, lexeme.value, lexeme.params);
 }
 
+console.log(iterator);
+
 //
 //iterator.next();
 //
