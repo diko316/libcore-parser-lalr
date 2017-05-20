@@ -56,6 +56,6 @@
   },
   "dependencies": {
     "libcore": "^0.2.11",
-    "libcore-tokenizer": "^0.1.1"
+    "libcore-tokenizer": "^0.1.2"
   }
 }

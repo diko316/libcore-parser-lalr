@@ -763,6 +763,7 @@ function define(name, rule, grammar, tokenizer) {
     from = to = null;
     lexemes = [];
     
+    
     for (l = rule.length; l--;) {
         item = rule[l];
         
