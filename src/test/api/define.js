@@ -101,6 +101,7 @@ describe('Declares LALR grammar using ' +
         it('1. Should define LALR grammar without errors',
             function () {
                 expect(defineNoExclusionsGrammar).not.toThrow();
+                expect(global.main.isParser(defineNoExclusionsGrammar())).toBe(true);
             });
         
         it('2. Should not accept "root" parameter not defined ' +
@@ -118,6 +119,7 @@ describe('Declares LALR grammar using ' +
            ' grammar rule terminals.',
             function () {
                 expect(defineCompleteGrammar).not.toThrow();
+                expect(global.main.isParser(defineCompleteGrammar())).toBe(true);
             });
 
     });

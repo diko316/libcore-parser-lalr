@@ -2,7 +2,8 @@
 
 
 var libcore = require("libcore"),
-    Parser = require("./parser.js");
+    Parser = require("./parser.js"),
+    iteratorManager = require("./iterator.js");
     
 function define(root, definitions, exclusions) {
     return new Parser(root, definitions, exclusions);
@@ -38,7 +39,17 @@ function load(json) {
     return parser;
 }
 
+function isParser(parser) {
+    return parser instanceof Parser;
+}
+
+
+
 module.exports = {
+    Parser: Parser,
+    Iterator: iteratorManager.Base,
+    isParser: isParser,
     define: define,
-    load: load
+    load: load,
+    registerIterator: iteratorManager.register
 };

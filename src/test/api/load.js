@@ -44,7 +44,7 @@ describe('Loads LALR pushdown FSM data by calling ' +
                 }
                 
                 expect(load).not.toThrow();
-                
+                expect(global.main.isParser(load())).toBe(true);
             });
         
         it('2. Should load fsm data from Object parameter.',
@@ -56,5 +56,6 @@ describe('Loads LALR pushdown FSM data by calling ' +
                 }
                 
                 expect(load).not.toThrow();
+                expect(global.main.isParser(load())).toBe(true);
             });
     });

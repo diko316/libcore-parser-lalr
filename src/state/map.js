@@ -108,13 +108,17 @@ StateMap.prototype = {
         return true;
     },
     
-    exportStates: function (json) {
-        var current = {
+    toObject: function () {
+        return {
                 start: this.start,
                 states: this.states,
                 anchors: this.anchors,
                 ends: this.ends
             };
+    },
+    
+    exportStates: function (json) {
+        var current = this.toObject();
             
         if (json === true) {
             try {

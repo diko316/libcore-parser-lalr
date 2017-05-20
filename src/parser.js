@@ -11,7 +11,7 @@ function Parser(root, definition, exclude) {
     this.tokenizer = new Tokenizer();
     this.map = new StateMap();
     
-    if (root && definition) {
+    if (arguments.length) {
         this.define(root, definition, exclude);
     }
 }
@@ -50,17 +50,23 @@ Parser.prototype = {
             exclude = [];
         }
         
-        if (lib.string(root) && array(definition)) {
-            this.ready = ready = builder(root,
-                                        this.map,
-                                        this.tokenizer,
-                                        definition,
-                                        exclude);
-            
-            return ready;
+        if (!lib.string(root)) {
+            throw new Error("Invalid root grammar rule parameter.");
         }
         
-        return false;
+        if (!array(definition)) {
+            throw new Error("Invalid grammar rules definition parameter");
+        }
+        
+        
+        this.ready = ready = builder(root,
+                                    this.map,
+                                    this.tokenizer,
+                                    definition,
+                                    exclude);
+        
+        return ready;
+
     },
     
     fromJSON: function (json) {
@@ -95,7 +101,20 @@ Parser.prototype = {
     },
     
     toJSON: function () {
+        return JSON.stringify(this.toObject());
+    },
+    
+    toObject: function () {
+        var object;
         
+        if (!this.ready) {
+            throw new Error("Grammar rules is not yet defined.");
+        }
+        
+        object = this.map.toObject();
+        object.tokens = this.tokenizer.toObject();
+        
+        return object;
     },
     
     parse: function (subject, reducer, iterator) {

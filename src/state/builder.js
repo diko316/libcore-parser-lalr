@@ -100,91 +100,90 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         ruleNameRe = RULE_NAME_RE,
         ruleNames = [];
     var c, l, dc, dl, name, definition, rules, grammar, index, regex, terminal;
+        
+    name = null;
+    rules = {};
+    grammar = {
+        rgenId: 0,
+        ruleNames: ruleNames = [],
+        rules: rules,
+        terminal: terminal = {},
+        lexIndex: index = {},
+        ruleIndex: {}
+    };
     
-    if (array(definitions)) {
+    // augment root
+    definitions.splice(definitions.length,
+                       0,
+                       "$Root", [
+                            [ root, "$" ]
+                        ]);
+    
+    for (c = -1, l = definitions.length; l--;) {
         
-        name = null;
-        rules = {};
-        grammar = {
-            rgenId: 0,
-            ruleNames: ruleNames = [],
-            rules: rules,
-            terminal: terminal = {},
-            lexIndex: index = {},
-            ruleIndex: {}
-        };
+        definition = definitions[++c];
         
-        // augment root
-        definitions.splice(definitions.length,
-                           0,
-                           "$Root", [
-                                [ root, "$" ]
-                            ]);
-        
-        for (c = -1, l = definitions.length; l--;) {
+        if (string(definition)) {
             
-            definition = definitions[++c];
-            
-            if (string(definition)) {
-                
-                if (!ruleNameRe.test(definition)) {
-                    throw new Error("Invalid grammar rule name " + definition);
-                }
-                name = definition;
-            
+            if (!ruleNameRe.test(definition)) {
+                throw new Error("Invalid grammar rule name " + definition);
             }
-            else if (array(definition)) {
-                
-                // do not accept grammar rule if it doesn't have name
-                if (!name) {
-                    throw new Error("Invalid grammar rules parameter.");
-                }
-                
-                dc = -1;
-                dl = definition.length;
-                
-                for (; dl--;) {
-                    defineRule(name, definition[++dc], grammar, tokenizer);
-                }
+            name = definition;
+        
+        }
+        else if (array(definition)) {
+            
+            // do not accept grammar rule if it doesn't have name
+            if (!name) {
+                throw new Error("Invalid grammar rules parameter.");
+            }
+            
+            dc = -1;
+            dl = definition.length;
+            
+            for (; dl--;) {
+                defineRule(name, definition[++dc], grammar, tokenizer);
+            }
 
-            }
-            else {
-                throw new Error("Invalid item in definitions parameter.");
-            }
-            
+        }
+        else {
+            throw new Error("Invalid item in definitions parameter.");
         }
         
-        // add excludes
-        if (exclude) {
-            exclude = exclude.slice(0);
-            regex = lib.regex;
-            
-            for (l = exclude.length; l--;) {
-                definition = exclude[l];
-                
-                if (!regex(definition)) {
-                    throw new Error("Invalid exclude token parameter.");
-                }
-                
-                name = '/' + definition.source + '/';
-                if (!(name in terminal)) {
-                    tokenizer.define([ name, definition ]);
-                    terminal[name] = name;
-                    exclude[l] = name;
-                }
-                else {
-                    exclude.splice(l, 1);
-                }
-                
-            }
-            
-        }
-
-        return defineStates(grammar, stateMap, exclude);
-    
     }
     
-    return false;
+    // add excludes
+    if (exclude) {
+        exclude = exclude.slice(0);
+        regex = lib.regex;
+        
+        for (l = exclude.length; l--;) {
+            definition = exclude[l];
+            
+            if (!regex(definition)) {
+                throw new Error("Invalid exclude token parameter.");
+            }
+            
+            name = '/' + definition.source + '/';
+            if (!(name in terminal)) {
+                tokenizer.define([ name, definition ]);
+                terminal[name] = name;
+                exclude[l] = name;
+            }
+            else {
+                exclude.splice(l, 1);
+            }
+            
+        }
+        
+    }
+    
+    if (!lib.contains(rules, root)) {
+        throw new Error("Invalid root grammar rule parameter.");
+    }
+
+    return defineStates(grammar, stateMap, exclude);
+
 }
 
 
