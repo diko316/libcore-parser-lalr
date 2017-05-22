@@ -79,13 +79,12 @@ BaseIterator.prototype = {
             me.nextTokenIndex = to;
             
             // convert to lexeme
-            me.params = {
-                        name: name,
-                        params: 0,
-                        value: token[1],
-                        from: from,
-                        to: to
-                    };
+            me.params = me.createLexeme(name,
+                                        token[1],
+                                        null,
+                                        0,
+                                        from,
+                                        to);
             
             // shift
             if (name in ref) {
@@ -162,13 +161,12 @@ BaseIterator.prototype = {
         }
         
         buffer.length = bl;
-        me.current = created = {
-                                name: name,
-                                params: params,
-                                value: values,
-                                from: from,
-                                to: to
-                            };
+        me.current = created = me.createLexeme(name,
+                                               null,
+                                               values,
+                                               params,
+                                               from,
+                                               to);
         
         // only if it ended
         if (name === '$Root') {
@@ -229,6 +227,17 @@ BaseIterator.prototype = {
         return false;
     },
     
+    createLexeme: function (name, value, morphemes, params, from, to) {
+        return {
+                name: name,
+                params: params,
+                value: value,
+                children: morphemes,
+                from: from,
+                to: to
+            };
+    },
+    
     reset: function () {
         var parser = this.parser;
         
@@ -267,8 +276,9 @@ BaseIterator.prototype = {
         var me = this,
             actions = me.actions,
             number = libcore.number,
-            completed = me.completed;
-        var state, params, result, returns, ref, current;
+            completed = me.completed,
+            returns = false;
+        var state, params, result, ref, current;
 
         
         for (; !completed;) {
@@ -321,7 +331,7 @@ BaseIterator.prototype = {
             
         }
         
-        return completed && me.error ? false : null;
+        return me.error || !completed ? false : null;
         
     }
 };

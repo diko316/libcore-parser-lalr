@@ -10,7 +10,7 @@ describe('Base Iterator must have next() method that returns '+
             function () {
                 var joc = jasmine.objectContaining,
                     subject = 'diko is beautiful';
-                var parser, iterator, lexeme;
+                var parser, iterator;
                 
                 function createIterator() {
                     parser = defineSampleParser();
