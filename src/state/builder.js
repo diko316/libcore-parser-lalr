@@ -2,7 +2,7 @@
 
 var libcore = require("libcore"),
     defineStates = require("./define.js"),
-    RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$Root|\$)$/;
+    RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
 
 function define(name, rule, grammar, tokenizer) {
     var rules = grammar.rules,
@@ -116,7 +116,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     // augment root
     definitions.splice(definitions.length,
                        0,
-                       "$Root", [
+                       "$end", [
                             [ root, "$" ]
                         ]);
     

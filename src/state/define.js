@@ -7,7 +7,7 @@ function define(grammar, map, exclude) {
     var SO = StateObject,
         ruleIndex = grammar.rules,
         vstate = new SO(map, map.start),
-        rootName = "$Root",
+        rootName = "$end",
         pending = [[ vstate, rootName]],
         l = 1;
     var item, production, rule, lexeme, anchorState, ruleId, params,

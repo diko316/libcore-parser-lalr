@@ -122,7 +122,9 @@ BaseIterator.prototype = {
         me.pstate = states[state][name];
         me.current = lexeme;
         me.params = null;
-        me.returns = true;
+        
+        // do not return "$" token
+        me.returns = name !== "$";
         
         return 1;
 
@@ -169,9 +171,11 @@ BaseIterator.prototype = {
                                                to);
         
         // only if it ended
-        if (name === '$Root') {
+        if (name === '$end') {
             
             if (bl === 0) {
+                created.params = 1;
+                created.children = [created.children[0]];
                 me.params = created;
                 return 3;
             }
@@ -238,6 +242,19 @@ BaseIterator.prototype = {
             };
     },
     
+    update: function (value) {
+        var me = this,
+            current = me.current;
+        
+        if (!me.error && current) {
+            
+            current.value = value;
+            
+        }
+        
+        return this;
+    },
+    
     reset: function () {
         var parser = this.parser;
         
@@ -280,6 +297,10 @@ BaseIterator.prototype = {
             returns = false;
         var state, params, result, ref, current;
 
+        // reset current
+        if (!completed) {
+            delete me.current;
+        }
         
         for (; !completed;) {
             

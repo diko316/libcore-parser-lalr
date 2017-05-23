@@ -346,7 +346,9 @@ BaseIterator.prototype = {
         me.pstate = states[state][name];
         me.current = lexeme;
         me.params = null;
-        me.returns = true;
+        
+        // do not return "$" token
+        me.returns = name !== "$";
         
         return 1;
 
@@ -393,9 +395,11 @@ BaseIterator.prototype = {
                                                to);
         
         // only if it ended
-        if (name === '$Root') {
+        if (name === '$end') {
             
             if (bl === 0) {
+                created.params = 1;
+                created.children = [created.children[0]];
                 me.params = created;
                 return 3;
             }
@@ -462,6 +466,19 @@ BaseIterator.prototype = {
             };
     },
     
+    update: function (value) {
+        var me = this,
+            current = me.current;
+        
+        if (!me.error && current) {
+            
+            current.value = value;
+            
+        }
+        
+        return this;
+    },
+    
     reset: function () {
         var parser = this.parser;
         
@@ -504,6 +521,10 @@ BaseIterator.prototype = {
             returns = false;
         var state, params, result, ref, current;
 
+        // reset current
+        if (!completed) {
+            delete me.current;
+        }
         
         for (; !completed;) {
             
@@ -747,7 +768,7 @@ module.exports = Parser;
 
 var libcore = __webpack_require__(0),
     defineStates = __webpack_require__(7),
-    RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$Root|\$)$/;
+    RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
 
 function define(name, rule, grammar, tokenizer) {
     var rules = grammar.rules,
@@ -861,7 +882,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     // augment root
     definitions.splice(definitions.length,
                        0,
-                       "$Root", [
+                       "$end", [
                             [ root, "$" ]
                         ]);
     
@@ -950,7 +971,7 @@ function define(grammar, map, exclude) {
     var SO = StateObject,
         ruleIndex = grammar.rules,
         vstate = new SO(map, map.start),
-        rootName = "$Root",
+        rootName = "$end",
         pending = [[ vstate, rootName]],
         l = 1;
     var item, production, rule, lexeme, anchorState, ruleId, params,

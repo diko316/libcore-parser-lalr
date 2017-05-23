@@ -70,13 +70,8 @@ describe('Base Iterator must have next() method that returns '+
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
-                    name: '$',
-                    params: 0
-                }));
-                
-                expect(iterator.next()).toEqual(joc({
-                    name: '$Root',
-                    params: 2
+                    name: '$end',
+                    params: 1
                 }));
                 
                 
