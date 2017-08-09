@@ -89,7 +89,8 @@ function define(name, rule, grammar, tokenizer) {
     
     
     rules[name] = from;
-
+    
+    return [from[2][0], to[0]];
 }
 
 
@@ -100,7 +101,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         defineRule = define,
         ruleNameRe = RULE_NAME_RE,
         ruleNames = [];
-    var c, l, dc, dl, name, definition, rules, grammar, index, regex, terminal;
+    var c, l, dc, dl, name, definition,
+        rules, grammar, groups, group, index, regex, terminal;
         
     name = null;
     rules = {};
@@ -110,7 +112,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         rules: rules,
         terminal: terminal = {},
         lexIndex: index = {},
-        ruleIndex: {}
+        ruleIndex: {},
+        ruleGroup: groups = {}
     };
     
     // augment root
@@ -143,7 +146,12 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             dl = definition.length;
             
             for (; dl--;) {
-                defineRule(name, definition[++dc], grammar, tokenizer);
+                group = defineRule(name,
+                                   definition[++dc],
+                                   grammar,
+                                   tokenizer);
+                // register group
+                groups[group[1]] = name + (dc + 1);
             }
 
         }

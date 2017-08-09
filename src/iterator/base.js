@@ -84,7 +84,8 @@ BaseIterator.prototype = {
                                         null,
                                         0,
                                         from,
-                                        to);
+                                        to,
+                                        null);
             
             // shift
             if (name in ref) {
@@ -168,7 +169,8 @@ BaseIterator.prototype = {
                                                values,
                                                params,
                                                from,
-                                               to);
+                                               to,
+                                               reduce[2]);
         
         // only if it ended
         if (name === '$end') {
@@ -176,7 +178,9 @@ BaseIterator.prototype = {
             if (bl === 0) {
                 created.params = 1;
                 created.children = [created.children[0]];
+                created.ruleIndex = true;
                 me.params = created;
+                
                 return 3;
             }
             else {
@@ -231,14 +235,15 @@ BaseIterator.prototype = {
         return false;
     },
     
-    createLexeme: function (name, value, morphemes, params, from, to) {
+    createLexeme: function (name, value, morphemes, params, from, to, rIndex) {
         return {
                 name: name,
                 params: params,
                 value: value,
                 children: morphemes,
                 from: from,
-                to: to
+                to: to,
+                ruleIndex: rIndex || name
             };
     },
     

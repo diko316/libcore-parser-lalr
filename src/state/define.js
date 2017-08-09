@@ -6,6 +6,7 @@ function define(grammar, map, exclude) {
     
     var SO = StateObject,
         ruleIndex = grammar.rules,
+        ruleGroup = grammar.ruleGroup,
         vstate = new SO(map, map.start),
         rootName = "$end",
         pending = [[ vstate, rootName]],
@@ -66,7 +67,7 @@ function define(grammar, map, exclude) {
                 
                 // set reduce state
                 if (!next || next[0] === false) {
-                    vstate.reduce(production, params);
+                    vstate.reduce(production, params, ruleGroup[ruleId]);
                 }
                 
             }

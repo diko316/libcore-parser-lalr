@@ -51,8 +51,8 @@ StateObject.prototype = {
         
     },
     
-    reduce: function (rule, params) {
-        this.map.setReduceState(this.id, rule, params);
+    reduce: function (rule, params, ruleIndex) {
+        this.map.setReduceState(this.id, rule, params, ruleIndex);
     }
 };
 

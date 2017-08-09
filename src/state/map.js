@@ -27,7 +27,7 @@ StateMap.prototype = {
         }
     },
     
-    setReduceState: function (state, name, params) {
+    setReduceState: function (state, name, params, ruleIndex) {
         var ends = this.ends;
         var current;
         
@@ -40,7 +40,7 @@ StateMap.prototype = {
             }
         }
         else {
-            ends[state] = [name, params];
+            ends[state] = [name, params, ruleIndex];
         }
         
     },

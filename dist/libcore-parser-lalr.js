@@ -308,7 +308,8 @@ BaseIterator.prototype = {
                                         null,
                                         0,
                                         from,
-                                        to);
+                                        to,
+                                        null);
             
             // shift
             if (name in ref) {
@@ -392,7 +393,8 @@ BaseIterator.prototype = {
                                                values,
                                                params,
                                                from,
-                                               to);
+                                               to,
+                                               reduce[2]);
         
         // only if it ended
         if (name === '$end') {
@@ -400,7 +402,9 @@ BaseIterator.prototype = {
             if (bl === 0) {
                 created.params = 1;
                 created.children = [created.children[0]];
+                created.ruleIndex = true;
                 me.params = created;
+                
                 return 3;
             }
             else {
@@ -455,14 +459,15 @@ BaseIterator.prototype = {
         return false;
     },
     
-    createLexeme: function (name, value, morphemes, params, from, to) {
+    createLexeme: function (name, value, morphemes, params, from, to, rIndex) {
         return {
                 name: name,
                 params: params,
                 value: value,
                 children: morphemes,
                 from: from,
-                to: to
+                to: to,
+                ruleIndex: rIndex || name
             };
     },
     
@@ -855,7 +860,8 @@ function define(name, rule, grammar, tokenizer) {
     
     
     rules[name] = from;
-
+    
+    return [from[2][0], to[0]];
 }
 
 
@@ -866,7 +872,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         defineRule = define,
         ruleNameRe = RULE_NAME_RE,
         ruleNames = [];
-    var c, l, dc, dl, name, definition, rules, grammar, index, regex, terminal;
+    var c, l, dc, dl, name, definition,
+        rules, grammar, groups, group, index, regex, terminal;
         
     name = null;
     rules = {};
@@ -876,7 +883,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         rules: rules,
         terminal: terminal = {},
         lexIndex: index = {},
-        ruleIndex: {}
+        ruleIndex: {},
+        ruleGroup: groups = {}
     };
     
     // augment root
@@ -909,7 +917,12 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             dl = definition.length;
             
             for (; dl--;) {
-                defineRule(name, definition[++dc], grammar, tokenizer);
+                group = defineRule(name,
+                                   definition[++dc],
+                                   grammar,
+                                   tokenizer);
+                // register group
+                groups[group[1]] = name + (dc + 1);
             }
 
         }
@@ -970,6 +983,7 @@ function define(grammar, map, exclude) {
     
     var SO = StateObject,
         ruleIndex = grammar.rules,
+        ruleGroup = grammar.ruleGroup,
         vstate = new SO(map, map.start),
         rootName = "$end",
         pending = [[ vstate, rootName]],
@@ -1030,7 +1044,7 @@ function define(grammar, map, exclude) {
                 
                 // set reduce state
                 if (!next || next[0] === false) {
-                    vstate.reduce(production, params);
+                    vstate.reduce(production, params, ruleGroup[ruleId]);
                 }
                 
             }
@@ -1080,7 +1094,7 @@ StateMap.prototype = {
         }
     },
     
-    setReduceState: function (state, name, params) {
+    setReduceState: function (state, name, params, ruleIndex) {
         var ends = this.ends;
         var current;
         
@@ -1093,7 +1107,7 @@ StateMap.prototype = {
             }
         }
         else {
-            ends[state] = [name, params];
+            ends[state] = [name, params, ruleIndex];
         }
         
     },
@@ -1249,8 +1263,8 @@ StateObject.prototype = {
         
     },
     
-    reduce: function (rule, params) {
-        this.map.setReduceState(this.id, rule, params);
+    reduce: function (rule, params, ruleIndex) {
+        this.map.setReduceState(this.id, rule, params, ruleIndex);
     }
 };
 

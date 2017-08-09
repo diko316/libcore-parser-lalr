@@ -92,7 +92,10 @@ var lexeme;
 iterator.set('diko is beautiful');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
-    console.log(lexeme.name, lexeme.value, lexeme.params);
+    console.log(lexeme.name,
+                lexeme.ruleIndex,
+                lexeme.value,
+                lexeme.params);
 }
 
 //console.log(iterator);
