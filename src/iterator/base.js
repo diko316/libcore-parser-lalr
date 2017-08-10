@@ -26,14 +26,20 @@ BaseIterator.prototype = {
     actions: {
         ':start': {
             0: ':fail',
-            1: ':shift',
-            2: ':reduce'
+            1: ':tokenize'
             
+        },
+        
+        ':tokenize': {
+            0: ':fail',
+            1: ':tokenize',
+            2: ':shift',
+            3: ':reduce'
         },
         
         ':shift': {
             0: ':fail',
-            1: ':start'
+            1: ':tokenize'
         },
         
         ':reduce': {
@@ -47,66 +53,60 @@ BaseIterator.prototype = {
     },
     
     ':start': function () {
+        var me = this;
+        
+        me.params = me.nextTokenIndex;
+        
+        return 1;
+    },
+    
+    ':tokenize': function (from) {
         var me = this,
             parser = me.parser,
             map = parser.map,
-            states = map.states,
             ends = map.ends,
-            exclude = map.exclude,
-            tokenizer = parser.tokenizer,
-            from = me.nextTokenIndex,
+            states = map.states,
             state = me.pstate,
-            token = tokenizer.tokenize(from, me.subject);
+            token = parser.tokenizer.tokenize(from,
+                                              me.subject);
             
-        var name, ref, to;
+        var name, to, ref;
         
-        for (; token; token = tokenizer.tokenize(from, me.subject)) {
-            name = token[0];
-            if (name in exclude) {
-                from = token[2];
-            }
-            else {
-                break;
-            }
-        }
         
-
         if (token) {
-            ref = states[state];
-            
+            name = token[0];
             to = token[2];
             
-            me.nextTokenIndex = to;
-            
-            // convert to lexeme
-            me.params = me.createLexeme(name,
-                                        token[1],
-                                        null,
-                                        0,
-                                        from,
-                                        to,
-                                        null);
-            
-            // shift
-            if (name in ref) {
+            // tokenize again
+            if (!this.isAcceptableToken(token)) {
+                me.params = to;
                 return 1;
             }
             
-        }
-        
-        // reduce
-        if (me.buffer.length) {
+            me.nextTokenIndex = to;
+            me.params = me.createLexeme(name,
+                                            token[1],
+                                            null,
+                                            0,
+                                            from,
+                                            to,
+                                            null);
             
-            if (state in ends) {
+            // found shift state
+            ref = states[state];
+            if (name in ref) {
                 return 2;
             }
-            else {
-                me.params = 'failed reduce!';
-                return 0;
-            }
+
         }
         
-        me.params = 'Failed from start';
+        // can reduce remaining buffer
+        if (me.buffer.length && state in ends) {
+            return 3;
+        }
+        
+        // failed
+        me.params = 'Invalid token';
         return 0;
         
     },
@@ -126,7 +126,7 @@ BaseIterator.prototype = {
         
         // do not return "$" token
         me.returns = name !== "$";
-        
+        me.params = me.nextTokenIndex;
         return 1;
 
     },
@@ -233,6 +233,10 @@ BaseIterator.prototype = {
         me.completed = true;
         
         return false;
+    },
+    
+    isAcceptableToken: function (token) {
+        return !(token[0] in this.parser.map.exclude);
     },
     
     createLexeme: function (name, value, morphemes, params, from, to, rIndex) {
