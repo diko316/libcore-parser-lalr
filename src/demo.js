@@ -1,6 +1,5 @@
 'use strict';
 
-
 var Parser = require("./parser.js");
 //var parser = new Parser("Expr",
 //                        [
@@ -28,178 +27,100 @@ var Parser = require("./parser.js");
 //                            /[ \r\n\t]+/
 //                        ]);
 
-
-
-var parser = new Parser("Sentence", [
-                            "Sentence", [
-                                        ["Subject", "IVerb"],
-                                        ["Subject", "TVerb", "Object"]
+var parser = new Parser("Expr", // root grammar rule
+                        [ // grammar rules
+                            "Expr", [
+                                        "Add"
                                     ],
                             
-                            "Noun", [
-                                        /diko/,
-                                        /draegan/,
-                                        /cha/,
-                                        /aerin/,
-                                        /room/,
-                                        /car/,
-                                        /dvd\-drive/
+                            "Add",  [
+                                        ["Add", /\+/, "Mul"],
+                                        "Mul",
                                     ],
-                            
-                            "Subject", [
-                                        [ /the/, "Noun" ],
-                                        "Noun"
+                            "Mul",  [
+                                        ["Mul", /\*/, "Unit"],
+                                        "Unit"
                                     ],
-                            
-                            "Object", [
-                                        [ /of/, "Subject" ],
-                                        [ /to/, "Subject" ],
-                                        [ /on/, "Subject" ],
-                                        [ /about/, "Subject" ],
-                                        "Subject"
+                            "Unit", [
+                                        "Number",
+                                        [/\(/, "Expr", /\)/]
                                     ],
-                            
-                            "TVerb", [
-                                        /jump/,
-                                        /run|walk/,
-                                        /look/
-                                    ],
-                            
-                            "IVerb", [
-                                        /jumped/,
-                                        /ran|walked/,
-                                        /looked/,
-                                        ["LVerb", "SCompliment"]
-                                    ],
-                            
-                            "SCompliment", [
-                                        /beautiful/,
-                                        /cute/,
-                                        /bare/
-                                    ],
-                            
-                            "LVerb", [
-                                        /is|are/
+                            "Number", [
+                                        /(\+|\-)?[0-9]+(\.[0-9]+)?/
                                     ]
                         ],
+                        // ignore these tokens
                         [
-                            /[ \t]+/ // ignore space
+	                        /[ \r\n\t]+/
                         ]);
+
+
+
+//var parser = new Parser("Sentence", [
+//                            "Sentence", [
+//                                        ["Subject", "IVerb"],
+//                                        ["Subject", "TVerb", "Object"]
+//                                    ],
+//                            
+//                            "Noun", [
+//                                        /diko/,
+//                                        /draegan/,
+//                                        /cha/,
+//                                        /aerin/,
+//                                        /room/,
+//                                        /car/,
+//                                        /dvd\-drive/
+//                                    ],
+//                            
+//                            "Subject", [
+//                                        [ /the/, "Noun" ],
+//                                        "Noun"
+//                                    ],
+//                            
+//                            "Object", [
+//                                        [ /of/, "Subject" ],
+//                                        [ /to/, "Subject" ],
+//                                        [ /on/, "Subject" ],
+//                                        [ /about/, "Subject" ],
+//                                        "Subject"
+//                                    ],
+//                            
+//                            "TVerb", [
+//                                        /jump/,
+//                                        /run|walk/,
+//                                        /look/
+//                                    ],
+//                            
+//                            "IVerb", [
+//                                        /jumped/,
+//                                        /ran|walked/,
+//                                        /looked/,
+//                                        ["LVerb", "SCompliment"]
+//                                    ],
+//                            
+//                            "SCompliment", [
+//                                        /beautiful/,
+//                                        /cute/,
+//                                        /bare/
+//                                    ],
+//                            
+//                            "LVerb", [
+//                                        /is|are/
+//                                    ]
+//                        ],
+//                        [
+//                            /[ \t]+/ // ignore space
+//                        ]);
 
 var iterator = parser.iterator();
 var lexeme;
 
-iterator.set('diko is beautiful');
+iterator.set('1 + 2 * 3');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     console.log(lexeme.name,
-                lexeme.ruleIndex,
+                lexeme.rule,
                 lexeme.value,
-                lexeme.params);
+                lexeme.reduceCount,
+                lexeme);
 }
-
-//console.log(iterator);
-
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-//
-//iterator.next();
-
-//console.log(iterator);
-
-
-//var parser = new Parser("Expr",
-//                        [
-//                            "Expr", [
-//                                        "Add"
-//                                    ],
-//                            
-//                            "Add",  [
-//                                        ["Add", /\+/, "Mul"],
-//                                        "Mul"
-//                                    ],
-//                            
-//                            "Mul",  [
-//                                        ["Mul", /\*/, "Unit"],
-//                                        "Unit"
-//                                    ],
-//                                    
-//                            "Unit", [
-//                                        "Number",
-//                                        [/\(/, "Expr", /\)/]
-//                                    ],
-//                            
-//                            "Number", [
-//                                        /(\+|\-)?[0-9]+(\.[0-9]+)?/
-//                                    ]
-//                        ]);
-    
-
-//console.log(parser);
-
-
-//var builder = require("./state/builder.js"),
-//    Tokenizer = require("libcore-tokenizer"),
-//    map = builder("Expr",
-//            new Tokenizer(),
-//            [
-//                "Expr", [
-//                            "Add"
-//                        ],
-//                
-//                "Add",  [
-//                            ["Add", /\+/, "Mul"],
-//                            "Mul"
-//                        ],
-//                
-//                "Mul",  [
-//                            ["Mul", /\*/, "Unit"],
-//                            "Unit"
-//                        ],
-//                        
-//                "Unit", [
-//                            "Number",
-//                            [/\(/, "Expr", /\)/]
-//                        ],
-//                
-//                "Number", [
-//                            /(\+|\-)?[0-9]+(\.[0-9]+)?/
-//                        ]
-//            ]);
-//    
-//console.log(map);
-
-//builder("Expr",
-//        new Tokenizer(),
-//        [
-//            "Expr", [
-//                        "Add"
-//                    ],
-//            
-//            "Add",  [
-//                        ["Add", /\+/, "Number"],
-//                        "Number"
-//                    ],
-//            
-//            "Number", [
-//                        /(\+|\-)?[0-9]+(\.[0-9]+)?/
-//                    ]
-//        ]);

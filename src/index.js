@@ -44,8 +44,8 @@ function isParser(parser) {
 }
 
 
-
-module.exports = {
+// integrate to libcore
+module.exports = libcore.lalr = {
     Parser: Parser,
     Iterator: iteratorManager.Base,
     isParser: isParser,

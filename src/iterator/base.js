@@ -1,6 +1,7 @@
 'use strict';
 
-var libcore = require("libcore");
+var libcore = require("libcore"),
+    Lexeme = require("../lexeme.js");
 
 function BaseIterator(parser) {
     if (!libcore.object(parser)) {
@@ -70,7 +71,7 @@ BaseIterator.prototype = {
             token = parser.tokenizer.tokenize(from,
                                               me.subject);
             
-        var name, to, ref;
+        var name, to, ref, lexeme;
         
         
         if (token) {
@@ -83,14 +84,14 @@ BaseIterator.prototype = {
                 return 1;
             }
             
+            lexeme = new Lexeme('token');
+            lexeme.name = name;
+            lexeme.value = token[1];
+            lexeme.from = from;
+            lexeme.to = to;
+            
             me.nextTokenIndex = to;
-            me.params = me.createLexeme(name,
-                                            token[1],
-                                            null,
-                                            0,
-                                            from,
-                                            to,
-                                            null);
+            me.params = lexeme;
             
             // found shift state
             ref = states[state];
@@ -142,11 +143,16 @@ BaseIterator.prototype = {
             reduce = ends[state],
             name = reduce[0],
             params = reduce[1],
-            values = [],
             l = params,
-            endIndex = l - 1;
+            endIndex = l - 1,
+            created = new Lexeme('compound'),
+            values = [];
             
-        var litem, item, from, to, ref, created;
+        var litem, item, from, to, ref, last;
+        
+        created.name = name;
+        created.rule = reduce[2];
+        last = null;
         
         for (; l--;) {
             item = buffer[--bl];
@@ -159,26 +165,43 @@ BaseIterator.prototype = {
                 to = litem.to;
             }
             
-            values[l] = litem;
+            // create connection
+            litem.parent = created;
+             
+            if (last) {
+                last.previous = litem;
+                litem.next = last;
+            }
+            else {
+                created.last = last = litem;
+            }
+            created.first = litem;
+            values[l] = litem.value;
             
         }
+        created.value = values;
+        created.from = from;
+        created.to = to;
         
         buffer.length = bl;
-        me.current = created = me.createLexeme(name,
-                                               null,
-                                               values,
-                                               params,
-                                               from,
-                                               to,
-                                               reduce[2]);
+        
+        me.current = created;
+        
+        created.reduceCount = params;
         
         // only if it ended
         if (name === '$end') {
             
+            // end
             if (bl === 0) {
-                created.params = 1;
-                created.children = [created.children[0]];
-                created.ruleIndex = true;
+                litem = created.first;
+                
+                created.useType('end');
+                created.last = litem;
+                created.value = [litem.value];
+                created.rule = true;
+                created.reduceCount = 1;
+                
                 me.params = created;
                 
                 return 3;
@@ -237,18 +260,6 @@ BaseIterator.prototype = {
     
     isAcceptableToken: function (token) {
         return !(token[0] in this.parser.map.exclude);
-    },
-    
-    createLexeme: function (name, value, morphemes, params, from, to, rIndex) {
-        return {
-                name: name,
-                params: params,
-                value: value,
-                children: morphemes,
-                from: from,
-                to: to,
-                ruleIndex: rIndex || name
-            };
     },
     
     update: function (value) {

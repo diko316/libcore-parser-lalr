@@ -23,55 +23,55 @@ describe('Base Iterator must have next() method that returns '+
                 expect(iterator.next()).toEqual(joc({
                     name: '/diko/',
                     value: 'diko',
-                    params: 0
+                    reduceCount: 0
                 }));
                 
                 
                 expect(iterator.next()).toEqual(joc({
                     name: 'Noun',
-                    params: 1
+                    reduceCount: 1
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: 'Subject',
-                    params: 1
+                    reduceCount: 1
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: '/is|are/',
                     value: 'is',
-                    params: 0
+                    reduceCount: 0
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: 'LVerb',
-                    params: 1
+                    reduceCount: 1
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: '/beautiful/',
                     value: 'beautiful',
-                    params: 0
+                    reduceCount: 0
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: 'SCompliment',
-                    params: 1
+                    reduceCount: 1
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: 'IVerb',
-                    params: 2
+                    reduceCount: 2
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: 'Sentence',
-                    params: 2
+                    reduceCount: 2
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
                     name: '$end',
-                    params: 1
+                    reduceCount: 1
                 }));
                 
                 

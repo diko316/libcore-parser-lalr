@@ -7,7 +7,7 @@
 		exports["libcore-parser-lalr"] = factory(require("libcore"), require("libcore-tokenizer"));
 	else
 		root["libcore-parser-lalr"] = factory(root["libcore"], root["libcoreTokenizer"]);
-})(this, function(__WEBPACK_EXTERNAL_MODULE_0__, __WEBPACK_EXTERNAL_MODULE_10__) {
+})(this, function(__WEBPACK_EXTERNAL_MODULE_0__, __WEBPACK_EXTERNAL_MODULE_11__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -73,7 +73,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "/assets/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 11);
+/******/ 	return __webpack_require__(__webpack_require__.s = 12);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -145,7 +145,7 @@ module.exports = {
 
 
 var libcore = __webpack_require__(0),
-    Parser = __webpack_require__(5),
+    Parser = __webpack_require__(6),
     iteratorManager = __webpack_require__(1);
     
 function define(root, definitions, exclusions) {
@@ -224,7 +224,8 @@ module.exports = {
 "use strict";
 
 
-var libcore = __webpack_require__(0);
+var libcore = __webpack_require__(0),
+    Lexeme = __webpack_require__(5);
 
 function BaseIterator(parser) {
     if (!libcore.object(parser)) {
@@ -294,7 +295,7 @@ BaseIterator.prototype = {
             token = parser.tokenizer.tokenize(from,
                                               me.subject);
             
-        var name, to, ref;
+        var name, to, ref, lexeme;
         
         
         if (token) {
@@ -307,14 +308,14 @@ BaseIterator.prototype = {
                 return 1;
             }
             
+            lexeme = new Lexeme('token');
+            lexeme.name = name;
+            lexeme.value = token[1];
+            lexeme.from = from;
+            lexeme.to = to;
+            
             me.nextTokenIndex = to;
-            me.params = me.createLexeme(name,
-                                            token[1],
-                                            null,
-                                            0,
-                                            from,
-                                            to,
-                                            null);
+            me.params = lexeme;
             
             // found shift state
             ref = states[state];
@@ -366,11 +367,16 @@ BaseIterator.prototype = {
             reduce = ends[state],
             name = reduce[0],
             params = reduce[1],
-            values = [],
             l = params,
-            endIndex = l - 1;
+            endIndex = l - 1,
+            created = new Lexeme('compound'),
+            values = [];
             
-        var litem, item, from, to, ref, created;
+        var litem, item, from, to, ref, last;
+        
+        created.name = name;
+        created.rule = reduce[2];
+        last = null;
         
         for (; l--;) {
             item = buffer[--bl];
@@ -383,26 +389,43 @@ BaseIterator.prototype = {
                 to = litem.to;
             }
             
-            values[l] = litem;
+            // create connection
+            litem.parent = created;
+             
+            if (last) {
+                last.previous = litem;
+                litem.next = last;
+            }
+            else {
+                created.last = last = litem;
+            }
+            created.first = litem;
+            values[l] = litem.value;
             
         }
+        created.value = values;
+        created.from = from;
+        created.to = to;
         
         buffer.length = bl;
-        me.current = created = me.createLexeme(name,
-                                               null,
-                                               values,
-                                               params,
-                                               from,
-                                               to,
-                                               reduce[2]);
+        
+        me.current = created;
+        
+        created.reduceCount = params;
         
         // only if it ended
         if (name === '$end') {
             
+            // end
             if (bl === 0) {
-                created.params = 1;
-                created.children = [created.children[0]];
-                created.ruleIndex = true;
+                litem = created.first;
+                
+                created.useType('end');
+                created.last = litem;
+                created.value = [litem.value];
+                created.rule = true;
+                created.reduceCount = 1;
+                
                 me.params = created;
                 
                 return 3;
@@ -461,18 +484,6 @@ BaseIterator.prototype = {
     
     isAcceptableToken: function (token) {
         return !(token[0] in this.parser.map.exclude);
-    },
-    
-    createLexeme: function (name, value, morphemes, params, from, to, rIndex) {
-        return {
-                name: name,
-                params: params,
-                value: value,
-                children: morphemes,
-                from: from,
-                to: to,
-                ruleIndex: rIndex || name
-            };
     },
     
     update: function (value) {
@@ -600,10 +611,60 @@ module.exports = BaseIterator;
 "use strict";
 
 
+var EXPORT = Lexeme,
+    CORE = __webpack_require__(0),
+    TYPE = {
+        token: 1,
+        end: 2,
+        compound: 3
+    };
+    
+    
+
+function Lexeme(type) {
+    this.useType(type);
+}
+
+
+Lexeme.prototype = {
+    constructor: Lexeme,
+    name: null,
+    rule: null,
+    value: null,
+    reduceCount: 0,
+    from: 0,
+    to: 0,
+    
+    parent: null,
+    first: null,
+    last: null,
+    next: null,
+    previous: null,
+    
+    useType: function (type) {
+        var types = TYPE;
+        this.type = CORE.contains(types, type) ?
+                        types[type] : types.token;
+    }
+};
+
+
+EXPORT.type = TYPE;
+EXPORT["default"] = EXPORT;
+
+module.exports = EXPORT;
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 var libcore = __webpack_require__(0),
-    Tokenizer = __webpack_require__(10),
-    StateMap = __webpack_require__(8),
-    builder = __webpack_require__(6),
+    Tokenizer = __webpack_require__(11),
+    StateMap = __webpack_require__(9),
+    builder = __webpack_require__(7),
     iteratorManager = __webpack_require__(1);
 
 function Parser(root, definition, exclude) {
@@ -769,14 +830,14 @@ Parser.prototype = {
 module.exports = Parser;
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 var libcore = __webpack_require__(0),
-    defineStates = __webpack_require__(7),
+    defineStates = __webpack_require__(8),
     RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
 
 function define(name, rule, grammar, tokenizer) {
@@ -975,13 +1036,13 @@ module.exports = build;
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var StateObject = __webpack_require__(9);
+var StateObject = __webpack_require__(10);
 
 function define(grammar, map, exclude) {
     
@@ -1065,7 +1126,7 @@ function define(grammar, map, exclude) {
 module.exports = define;
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1210,7 +1271,7 @@ StateMap.prototype = {
 module.exports = StateMap;
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1276,13 +1337,13 @@ StateObject.prototype = {
 module.exports = StateObject;
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports) {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE_10__;
+module.exports = __WEBPACK_EXTERNAL_MODULE_11__;
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__(2);
