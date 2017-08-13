@@ -3,8 +3,8 @@
 var EXPORT = Lexeme,
     CORE = require("libcore"),
     TYPE = {
-        token: 1,
-        end: 2,
+        terminal: 1,
+        nonterminal: 2,
         compound: 3
     };
     

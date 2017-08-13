@@ -84,7 +84,7 @@ BaseIterator.prototype = {
                 return 1;
             }
             
-            lexeme = new Lexeme('token');
+            lexeme = new Lexeme('terminal');
             lexeme.name = name;
             lexeme.value = token[1];
             lexeme.from = from;
@@ -145,7 +145,7 @@ BaseIterator.prototype = {
             params = reduce[1],
             l = params,
             endIndex = l - 1,
-            created = new Lexeme('compound'),
+            created = new Lexeme('nonterminal'),
             values = [];
             
         var litem, item, from, to, ref, last;
@@ -173,12 +173,12 @@ BaseIterator.prototype = {
                 litem.next = last;
             }
             else {
-                created.last = last = litem;
+                created.last = litem;
             }
-            created.first = litem;
+            created.first = last = litem;
             values[l] = litem.value;
-            
         }
+        
         created.value = values;
         created.from = from;
         created.to = to;
@@ -199,7 +199,7 @@ BaseIterator.prototype = {
                 created.useType('end');
                 created.last = litem;
                 created.value = [litem.value];
-                created.rule = true;
+                created.rule = map.root;
                 created.reduceCount = 1;
                 
                 me.params = created;
@@ -289,6 +289,7 @@ BaseIterator.prototype = {
         if (!this.subject) {
             delete this.ready;
         }
+        
         delete this.complete;
         delete this.error;
         
