@@ -187,8 +187,8 @@ function isParser(parser) {
 }
 
 
-
-module.exports = {
+// integrate to libcore
+module.exports = libcore.lalr = {
     Parser: Parser,
     Iterator: iteratorManager.Base,
     isParser: isParser,
@@ -308,7 +308,7 @@ BaseIterator.prototype = {
                 return 1;
             }
             
-            lexeme = new Lexeme('token');
+            lexeme = new Lexeme('terminal');
             lexeme.name = name;
             lexeme.value = token[1];
             lexeme.from = from;
@@ -369,7 +369,7 @@ BaseIterator.prototype = {
             params = reduce[1],
             l = params,
             endIndex = l - 1,
-            created = new Lexeme('compound'),
+            created = new Lexeme('nonterminal'),
             values = [];
             
         var litem, item, from, to, ref, last;
@@ -397,12 +397,12 @@ BaseIterator.prototype = {
                 litem.next = last;
             }
             else {
-                created.last = last = litem;
+                created.last = litem;
             }
-            created.first = litem;
+            created.first = last = litem;
             values[l] = litem.value;
-            
         }
+        
         created.value = values;
         created.from = from;
         created.to = to;
@@ -423,7 +423,7 @@ BaseIterator.prototype = {
                 created.useType('end');
                 created.last = litem;
                 created.value = [litem.value];
-                created.rule = true;
+                created.rule = map.root;
                 created.reduceCount = 1;
                 
                 me.params = created;
@@ -513,6 +513,7 @@ BaseIterator.prototype = {
         if (!this.subject) {
             delete this.ready;
         }
+        
         delete this.complete;
         delete this.error;
         
@@ -614,8 +615,8 @@ module.exports = BaseIterator;
 var EXPORT = Lexeme,
     CORE = __webpack_require__(0),
     TYPE = {
-        token: 1,
-        end: 2,
+        terminal: 1,
+        nonterminal: 2,
         compound: 3
     };
     
@@ -943,6 +944,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     name = null;
     rules = {};
     grammar = {
+        root: '$' + root,
         rgenId: 0,
         ruleNames: ruleNames = [],
         rules: rules,
@@ -1026,7 +1028,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     if (!lib.contains(rules, root)) {
         throw new Error("Invalid root grammar rule parameter.");
     }
-
+    //console.log("map? ", stateMap);
     return defineStates(grammar, stateMap, exclude);
 
 }
@@ -1057,6 +1059,9 @@ function define(grammar, map, exclude) {
         recurse, ident, next;
         
     map.reset();
+    
+    map.root = grammar.root;
+    
     if (exclude) {
         map.setExcludes(exclude);
     }
@@ -1166,7 +1171,7 @@ StateMap.prototype = {
         if (state in ends) {
             current = ends[state];
             if (current[0] !== name || current[1] !== params) {
-                console.log(this);
+                //console.log(this);
                 throw new Error("Reduce conflict found " +
                                 current[0] + ' ! <- ' + name);
             }
@@ -1182,7 +1187,7 @@ StateMap.prototype = {
             states = {};
         
         states[start] = {};
-        
+        this.root = '$end';
         this.start = start;
         this.states = states;
         this.anchors = {};
@@ -1203,8 +1208,9 @@ StateMap.prototype = {
     
     importStates: function (definition) {
         var lib = libcore,
-            object = lib.object;
-        var start, states, anchors, ends;
+            object = lib.object,
+            isString = lib.string;
+        var start, states, anchors, ends, root;
         
         if (!object(definition)) {
             throw new Error("Invalid Object definition parameter.");
@@ -1214,6 +1220,12 @@ StateMap.prototype = {
         if (!object(states)) {
             throw new Error(
                         'Invalid "states" Object in definition parameter.');
+        }
+        
+        root = definition.root;
+        if (!isString(root)) {
+            throw new Error(
+                        'Invalid "root" grammar rule in definition parameter.');
         }
         
         start = definition.start;
@@ -1232,6 +1244,7 @@ StateMap.prototype = {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
         
+        this.root = root;
         this.start = start;
         this.states = states;
         this.anchors = anchors;
@@ -1242,6 +1255,7 @@ StateMap.prototype = {
     
     toObject: function () {
         return {
+                root: this.root,
                 start: this.start,
                 states: this.states,
                 anchors: this.anchors,

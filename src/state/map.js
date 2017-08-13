@@ -34,7 +34,7 @@ StateMap.prototype = {
         if (state in ends) {
             current = ends[state];
             if (current[0] !== name || current[1] !== params) {
-                console.log(this);
+                //console.log(this);
                 throw new Error("Reduce conflict found " +
                                 current[0] + ' ! <- ' + name);
             }
@@ -50,7 +50,7 @@ StateMap.prototype = {
             states = {};
         
         states[start] = {};
-        
+        this.root = '$end';
         this.start = start;
         this.states = states;
         this.anchors = {};
@@ -71,8 +71,9 @@ StateMap.prototype = {
     
     importStates: function (definition) {
         var lib = libcore,
-            object = lib.object;
-        var start, states, anchors, ends;
+            object = lib.object,
+            isString = lib.string;
+        var start, states, anchors, ends, root;
         
         if (!object(definition)) {
             throw new Error("Invalid Object definition parameter.");
@@ -82,6 +83,12 @@ StateMap.prototype = {
         if (!object(states)) {
             throw new Error(
                         'Invalid "states" Object in definition parameter.');
+        }
+        
+        root = definition.root;
+        if (!isString(root)) {
+            throw new Error(
+                        'Invalid "root" grammar rule in definition parameter.');
         }
         
         start = definition.start;
@@ -100,6 +107,7 @@ StateMap.prototype = {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
         
+        this.root = root;
         this.start = start;
         this.states = states;
         this.anchors = anchors;
@@ -110,6 +118,7 @@ StateMap.prototype = {
     
     toObject: function () {
         return {
+                root: this.root,
                 start: this.start,
                 states: this.states,
                 anchors: this.anchors,

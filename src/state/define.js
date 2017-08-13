@@ -15,6 +15,9 @@ function define(grammar, map, exclude) {
         recurse, ident, next;
         
     map.reset();
+    
+    map.root = grammar.root;
+    
     if (exclude) {
         map.setExcludes(exclude);
     }

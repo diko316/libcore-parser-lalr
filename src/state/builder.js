@@ -107,6 +107,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     name = null;
     rules = {};
     grammar = {
+        root: '$' + root,
         rgenId: 0,
         ruleNames: ruleNames = [],
         rules: rules,
@@ -190,7 +191,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     if (!lib.contains(rules, root)) {
         throw new Error("Invalid root grammar rule parameter.");
     }
-
+    //console.log("map? ", stateMap);
     return defineStates(grammar, stateMap, exclude);
 
 }
