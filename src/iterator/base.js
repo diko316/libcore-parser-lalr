@@ -1,10 +1,17 @@
 'use strict';
 
-var libcore = require("libcore"),
-    Lexeme = require("../lexeme.js");
+import {
+            string,
+            number,
+            object
+        } from "libcore";
+        
+import Lexeme from "../lexeme.js";
+
+var INVALID_STATE_HANDLER = "Invalid result from state handler";
 
 function BaseIterator(parser) {
-    if (!libcore.object(parser)) {
+    if (!object(parser)) {
         throw new Error("Invalid parser parameter.");
     }
     
@@ -299,7 +306,7 @@ BaseIterator.prototype = {
     },
     
     set: function (subject) {
-        if (!libcore.string(subject)) {
+        if (!string(subject)) {
             throw new Error("Invalid String subject parameter.");
         }
         
@@ -313,7 +320,7 @@ BaseIterator.prototype = {
     next: function () {
         var me = this,
             actions = me.actions,
-            number = libcore.number,
+            isNumber = number,
             completed = me.completed,
             returns = false;
         var state, params, result, ref, current;
@@ -349,17 +356,15 @@ BaseIterator.prototype = {
             if (!completed) {
                 
                 // accepts number result
-                if (!number(result)) {
-                    throw new Error("Invalid result from state handler" +
-                                    state);
+                if (!isNumber(result)) {
+                    throw new Error(INVALID_STATE_HANDLER + state);
                 }
                     
                 // can transition to next state
                 ref = actions[state];
                 
                 if (!(result in ref)) {
-                    throw new Error("Invalid result from state handler" +
-                                    state);
+                    throw new Error(INVALID_STATE_HANDLER + state);
                 }
                 
                 me.state = ref[result];
@@ -378,4 +383,4 @@ BaseIterator.prototype = {
     }
 };
 
-module.exports = BaseIterator;
+export default BaseIterator;

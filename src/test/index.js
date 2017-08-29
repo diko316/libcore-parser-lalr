@@ -1,15 +1,15 @@
 'use strict';
 
-global.main = require("../index.js");
+import "./prepare.js";
 
-require("./api/define.js");
-require("./api/load.js");
-require("./api/register-iterator.js");
+import "./api/define.js";
+import "./api/load.js";
+import "./api/register-iterator.js";
 
 
-require("./api/iterator/set.js");
-require("./api/iterator/next.js");
+import "./api/iterator/set.js";
+import "./api/iterator/next.js";
 
-require("./api/parser/import.js");
-require("./api/parser/export.js");
-require("./api/parser/iterator.js");
+import "./api/parser/import.js";
+import "./api/parser/export.js";
+import "./api/parser/iterator.js";

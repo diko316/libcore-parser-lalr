@@ -2,13 +2,14 @@
   "name": "libcore-parser-lalr",
   "version": "0.0.2",
   "description": "LR Parser (my way)",
-  "main": "dist/index.js",
+  "main": "dist/libcore-parser-lalr.js",
+  "module": "dist/libcore-parser-lalr.es.js",
+  "jsnext:main": "dist/libcore-parser-lalr.es.js",
   "scripts": {
-    "test": "export BUILD_MODE=unit-test && xvfb-run node_modules/.bin/karma start karma.config.js",
-    "prestart": "node_modules/.bin/webpack --hide-modules",
-    "start": "node webpack.dev.server.js",
-    "build": "BUILD_MODE=production && node_modules/.bin/webpack --hide-modules",
-    "build-optimized": "BUILD_MODE=compressed && node_modules/.bin/webpack --hide-modules"
+    "test": "bin/build-bundle.sh test || exit 1",
+    "start": "bin/build-bundle.sh start || exit 1",
+    "build": "bin/build-bundle.sh build || exit 1",
+    "build-optimized": "bin/build-bundle.sh build-optimized || exit 1"
   },
   "repository": {
     "type": "git",
@@ -32,30 +33,24 @@
   },
   "homepage": "https://github.com/diko316/libcore-parser-lalr#readme",
   "devDependencies": {
-    "css-loader": "^0.26.4",
-    "express": "^4.15.3",
-    "extract-text-webpack-plugin": "^2.1.0",
-    "file-loader": "^0.10.1",
-    "jasmine-core": "^2.6.2",
-    "jshint": "^2.9.4",
-    "jshint-loader": "^0.8.4",
+    "jasmine-core": "^2.8.0",
     "karma": "^1.7.0",
     "karma-firefox-launcher": "^1.0.1",
     "karma-jasmine": "^1.1.0",
-    "karma-mocha-reporter": "^2.2.3",
-    "karma-webpack": "^2.0.3",
-    "less": "^2.7.2",
-    "less-loader": "^2.2.3",
-    "style-loader": "^0.13.2",
-    "uglify-js": "^2.8.26",
-    "uglifyjs-webpack-plugin": "^0.4.3",
-    "url-loader": "^0.5.8",
-    "webpack": "^2.5.1",
-    "webpack-dev-middleware": "^1.10.2",
-    "webpack-hot-middleware": "^2.18.0"
+    "karma-mocha-reporter": "^2.2.4",
+    "karma-rollup-preprocessor": "^5.0.1",
+    "rollup": "^0.48.2",
+    "rollup-plugin-browsersync": "^0.2.4",
+    "rollup-plugin-buble": "^0.15.0",
+    "rollup-plugin-commonjs": "^8.2.0",
+    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-globals": "^1.1.0",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-uglify": "^2.0.1"
   },
-  "dependencies": {
-    "libcore": "^0.2.11",
-    "libcore-tokenizer": "^0.1.2"
+  "optionalDependencies": {
+    "libcore": "0.3.5",
+    "libcore-tokenizer": "0.1.5"
   }
 }

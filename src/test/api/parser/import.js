@@ -1,9 +1,9 @@
 'use strict';
 
+import createParser from "./setup.sample.js";
 
 describe("Parser can load Lexer data using fromJSON(fsm:Object|String)",
     function () {
-        var createParser = require('./setup.sample.js');
         
         it("1. Should load Object lexer data by calling fromJSON() method",
             function () {

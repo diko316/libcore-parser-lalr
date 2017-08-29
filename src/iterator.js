@@ -1,47 +1,52 @@
 'use strict';
 
-var libcore = require("libcore"),
-    BaseIterator = require("./iterator/base.js"),
-    defaultIteratorName = "base",
+import {
+            string,
+            method
+        } from "libcore";
+
+import BaseIterator from "./iterator/base.js";
+        
+var defaultIteratorName = "base",
     ITERATORS = {};
 
-function register(name, Class) {
-    var lib = libcore,
-        Base = BaseIterator;
-    
-    if (!lib.string(name)) {
-        throw new Error("Invalid iterator name parameter.");
-    }
-    
-    if (!lib.method(Class) ||
-        (Class !== Base && !(Class.prototype instanceof Base))) {
-        throw new Error("Invalid iterator Class parameter.");
-    }
-    
-    ITERATORS[':' + name] = Class;
-    
-    return true;
-}
-
-function get(name) {
-    var list = ITERATORS;
-    
-    if (libcore.string(name)) {
-        name = ':' + name;
-        if (name in list) {
-            return list[name];
+export
+    function register(name, Class) {
+        var Base = BaseIterator;
+        
+        if (!string(name)) {
+            throw new Error("Invalid iterator name parameter.");
         }
+        
+        if (!method(Class) ||
+            (Class !== Base && !(Class.prototype instanceof Base))) {
+            throw new Error("Invalid iterator Class parameter.");
+        }
+        
+        ITERATORS[':' + name] = Class;
+        
+        return true;
     }
-    
-    return null;
-}
 
+export
+    function get(name) {
+        var list = ITERATORS;
+        
+        if (string(name)) {
+            name = ':' + name;
+            if (name in list) {
+                return list[name];
+            }
+        }
+        
+        return null;
+    }
+
+export {
+            defaultIteratorName as defaultIterator,
+            BaseIterator as Base
+        };
 
 register(defaultIteratorName, BaseIterator);
 
-module.exports = {
-    defaultIterator: defaultIteratorName,
-    Base: BaseIterator,
-    register: register,
-    get: get
-};
+

@@ -1,11 +1,11 @@
 'use strict';
 
+import defineSampleParser from "./setup.sample.js";
 
 describe('Base Iterator must have set(subject:String) method that ' +
          ' sets String subject to parse.',
          
     function () {
-        var defineSampleParser = require("./setup.sample.js");
         
         it('1. Should create iterator and set String subject with ' +
             'set(subject:String) method.',

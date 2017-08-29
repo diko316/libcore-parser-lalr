@@ -1,11 +1,11 @@
 'use strict';
 
+import createParser from "./setup.sample.js";
 
 describe('Parser can create Iterator by using iterator([namedIterator:String])',
     function () {
         
-        var Base = global.main.Iterator,
-            createParser = require('./setup.sample.js');
+        var Base = global.main.Iterator;
         
         it('1. Should create default iterator with empty parameter.',
             function () {

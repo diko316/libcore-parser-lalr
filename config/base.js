@@ -1,119 +1,97 @@
 'use strict';
 
-var PATH = require('path'),
-    ROOT_PATH = PATH.resolve(__dirname, '..'),
-    SOURCE_PATH = PATH.join(ROOT_PATH, 'src'),
-    DEFINITION = require(PATH.join(ROOT_PATH, 'package.json')),
-    LIB_NAME = DEFINITION.name,
-    entry = {};
+let pkg = require('../package.json'),
+    plugins = [
+        require('rollup-plugin-node-globals')(),
+        require('rollup-plugin-node-builtins')(),
+        require('rollup-plugin-node-resolve')({
+            // use "jsnext:main" if possible
+            // see https://github.com/rollup/rollup/wiki/jsnext:main
+            jsnext: true,  // Default: false
+      
+            // use "main" field or index.js, even if it's not an ES6 module
+            // (needs to be converted from CommonJS to ES6
+            // see https://github.com/rollup/rollup-plugin-commonjs
+            main: true  // Default: true
 
-// entry
-entry[LIB_NAME] = ['./src/index.js'];
+        }),
+        
+        require('rollup-plugin-commonjs')({
+            // non-CommonJS modules will be ignored, but you can also
+            // specifically include/exclude files
+            include: 'node_modules/**',  // Default: undefined
+            //exclude: [ 'node_modules/foo/**', 'node_modules/bar/**' ],  // Default: undefined
+            // these values can also be regular expressions
+            // include: /node_modules/
+      
+            // search for files other than .js files (must already
+            // be transpiled by a previous plugin!)
+            //extensions: [ '.js', '.coffee' ],  // Default: [ '.js' ]
+      
+            // if true then uses of `global` won't be dealt with by this plugin
+            //ignoreGlobal: false,  // Default: false
+      
+            // if false then skip sourceMap generation for CommonJS modules
+            sourceMap: false,  // Default: true
+      
+            // explicitly specify unresolvable named exports
+            // (see below for more details)
+            //namedExports: { './module.js': ['foo', 'bar' ] },  // Default: undefined
+      
+            // sometimes you have to leave require statements
+            // unconverted. Pass an array containing the IDs
+            // or a `id => boolean` function. Only use this
+            // option if you know what you're doing!
+            //ignore: [ 'conditional-runtime-dependency' ]
+        }),
+        require('rollup-plugin-buble')()
+    ];
+    
+function configure(config, meta) {
+        var name = meta.name,
+            hasOwn = Object.prototype.hasOwnProperty,
+            optionalObject = pkg.optionalDependencies,
+            globals = {},
+            optionals = [],
+            ol = 0,
+            umd = meta.umd = {
+                    file: meta.target,
+                    format: 'umd',
+                    name: name,
+                    exports: 'named',
+                    sourcemap: true
+                },
+            es = meta.es = {
+                file: meta.esTarget,
+                format: 'es',
+                name: name,
+                exports: 'named',
+                sourcemap: true
+            };
+        
+        var access;
+        
+        //console.log("camelized ", camelize(name), " from ", name);
 
-
-module.exports = {
-    entry: entry,
-    output: {
-        filename: '[name].js',
-        //path: PATH.join(ROOT_PATH, 'dist'),
-        path: PATH.join(ROOT_PATH, 'test', 'assets'),
-        publicPath: '/assets/',
-        library: LIB_NAME,
-        libraryTarget: 'umd',
-        umdNamedDefine: true
-    },
-    externals: {
-        "libcore": {
-            commonjs: "libcore",
-            commonjs2: "libcore",
-            amd: "libcore",
-            root: "libcore"
-        },
-        "libcore-tokenizer": {
-            commonjs: "libcore-tokenizer",
-            commonjs2: "libcore-tokenizer",
-            amd: "libcore-tokenizer",
-            root: "libcoreTokenizer"
+        // fix externals
+        for (access in optionalObject) {
+            if (hasOwn.call(optionalObject, access)) {
+                optionals[ol++] =
+                    globals[access] = access;
+            }
         }
-    },
-    module: {
-        rules: [{
-            test: /\.css$/,
-            use: [ 'style-loader', 'css-loader' ]
-        },
-        {
-            test: /\.png$/,
-            use: { loader: 'url-loader', options: { limit: 100000 } },
-        },
-        {
-            test: /\.jpg$/,
-            use: [ 'file-loader' ]
-        },
-        {
-            test: /\.(jpg|jpeg|gif|png)$/,
-            include: SOURCE_PATH,
-            use: {
-                loader:'url-loader',
-                options: {
-                    'limit': '1024',
-                    'name': 'images/[name].[ext]'
-                }
-            }
-            
-        },
-        {
-            test: /\.woff(\?v=\d+\.\d+\.\d+)?$/,
-            use: {
-                loader: 'url-loader',
-                options: {
-                    'limit': '10000',
-                    'mimetype': 'application/font-woff',
-                    'name': 'fonts/[name].[ext]'
-                }
-            }
-        },
-        {
-            test: /\.woff2(\?v=\d+\.\d+\.\d+)?$/,
-            use: {
-                loader: 'url-loader',
-                options: {
-                    'limit': '10000',
-                    'mimetype': 'application/font-woff',
-                    'name': 'fonts/[name].[ext]'
-                }
-            }
-        },
-        {
-            test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/,
-            use: {
-                loader: 'url-loader',
-                options: {
-                    'limit': '10000',
-                    'mimetype': 'application/octet-stream',
-                    'name': 'fonts/[name].[ext]'
-                }
-            }
-        },
-        {
-            test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,
-            use: {
-                loader: 'file-loader',
-                options: {
-                    'limit': '10000',
-                    'name': 'fonts/[name].[ext]'
-                }
-            }
-        },
-        {
-            test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-            use: {
-                loader: 'url-loader',
-                options: {
-                    'limit': '10000',
-                    'mimetype': 'mimetype=image/svg+xml',
-                    'name': 'fonts/[name].[ext]'
-                }
-            }
-        }]
+        
+        config.input = 'src/index.js';
+        
+        config.plugins = plugins;
+        
+        config.output = [umd, es];
+        
+        config.external = optionals;
+        config.globals = globals;
+
+        return config;
     }
-};
+
+module.exports = configure;
+    

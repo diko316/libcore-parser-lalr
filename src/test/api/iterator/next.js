@@ -1,10 +1,10 @@
 'use strict';
 
+import defineSampleParser from "./setup.sample.js";
 
 describe('Base Iterator must have next() method that returns '+
         'next created lexeme based from token or reduced lexemes',
     function () {
-        var defineSampleParser = require("./setup.sample.js");
         
         it('1. Should return created lexeme from token',
             function () {

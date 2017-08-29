@@ -7,7 +7,6 @@ TARGET_GID=$(stat -c '%g' ${TARGET})
 TARGET_UID=$(stat -c '%u' ${TARGET})
 
 cd "${ROOT}"
-echo "currently in ${ROOT} directory"
 
 if npm run test; then
     
@@ -16,8 +15,7 @@ if npm run test; then
     npm run build
     npm run build-optimized
     
-    if cp -R ${ROOT}/test/assets/* ${ROOT}/dist/; then
-        chown $(stat -c '%u:%g' ${ROOT}/dist) -R ${ROOT}/dist/*
+    if chown $(stat -c '%u:%g' ${ROOT}/dist) -R ${ROOT}/dist/*; then
         echo "Built all sources to output directory."
         
     else

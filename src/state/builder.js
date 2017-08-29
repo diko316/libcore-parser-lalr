@@ -1,8 +1,16 @@
 'use strict';
 
-var libcore = require("libcore"),
-    defineStates = require("./define.js"),
-    RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
+import {
+            string,
+            regex,
+            array,
+            contains
+            
+        } from "libcore";
+        
+import defineStates from "./define.js";
+        
+var RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
 
 function define(name, rule, grammar, tokenizer) {
     var rules = grammar.rules,
@@ -11,17 +19,16 @@ function define(name, rule, grammar, tokenizer) {
         lexIndex = grammar.lexIndex,
         ruleNames = grammar.ruleNames,
         ruleNameRe = RULE_NAME_RE,
-        lib = libcore,
-        string = lib.string,
-        regex = lib.regex;
+        isString = string,
+        isRegex = regex;
     var l, item, lexemes, token, tokenId, created,
         prefix, suffix, from, to, current, lexemeId;
     
-    if (string(rule) || regex(rule)) {
+    if (isString(rule) || isRegex(rule)) {
         rule = [rule];
     }
     
-    if (!lib.array(rule)) {
+    if (!array(rule)) {
         throw new Error("Invalid grammar rule found in " + name);
     }
     
@@ -32,7 +39,7 @@ function define(name, rule, grammar, tokenizer) {
     for (l = rule.length; l--;) {
         item = rule[l];
         
-        if (regex(item)) {
+        if (isRegex(item)) {
             token = item.source;
             tokenId = '/' + item.source + '/';
             
@@ -44,7 +51,7 @@ function define(name, rule, grammar, tokenizer) {
             
             item = tokenId;
         }
-        else if (!string(item)) {
+        else if (!isString(item)) {
             throw new Error("Invalid token in grammar rule " + item);
         }
         else if (!ruleNameRe.test(item)) {
@@ -95,14 +102,14 @@ function define(name, rule, grammar, tokenizer) {
 
 
 function build(root, stateMap, tokenizer, definitions, exclude) {
-    var lib = libcore,
-        string = lib.string,
-        array = lib.array,
+    var isString = string,
+        isArray = array,
+        isRegex = regex,
         defineRule = define,
         ruleNameRe = RULE_NAME_RE,
         ruleNames = [];
     var c, l, dc, dl, name, definition,
-        rules, grammar, groups, group, index, regex, terminal;
+        rules, grammar, groups, group, index, terminal;
         
     name = null;
     rules = {};
@@ -128,7 +135,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         
         definition = definitions[++c];
         
-        if (string(definition)) {
+        if (isString(definition)) {
             
             if (!ruleNameRe.test(definition)) {
                 throw new Error("Invalid grammar rule name " + definition);
@@ -136,7 +143,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             name = definition;
         
         }
-        else if (array(definition)) {
+        else if (isArray(definition)) {
             
             // do not accept grammar rule if it doesn't have name
             if (!name) {
@@ -165,12 +172,11 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     // add excludes
     if (exclude) {
         exclude = exclude.slice(0);
-        regex = lib.regex;
         
         for (l = exclude.length; l--;) {
             definition = exclude[l];
             
-            if (!regex(definition)) {
+            if (!isRegex(definition)) {
                 throw new Error("Invalid exclude token parameter.");
             }
             
@@ -188,7 +194,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         
     }
     
-    if (!lib.contains(rules, root)) {
+    if (!contains(rules, root)) {
         throw new Error("Invalid root grammar rule parameter.");
     }
     //console.log("map? ", stateMap);
@@ -196,5 +202,5 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
 
 }
 
+export default build;
 
-module.exports = build;

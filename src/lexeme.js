@@ -1,8 +1,8 @@
 'use strict';
 
-var EXPORT = Lexeme,
-    CORE = require("libcore"),
-    TYPE = {
+import { contains } from "libcore";
+
+var TYPE = {
         terminal: 1,
         nonterminal: 2,
         compound: 3
@@ -32,13 +32,14 @@ Lexeme.prototype = {
     
     useType: function (type) {
         var types = TYPE;
-        this.type = CORE.contains(types, type) ?
+        this.type = contains(types, type) ?
                         types[type] : types.token;
     }
 };
 
+export {
+        TYPE as type,
+        Lexeme
+    };
 
-EXPORT.type = TYPE;
-EXPORT["default"] = EXPORT;
-
-module.exports = EXPORT;
+export default Lexeme;

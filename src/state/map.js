@@ -1,7 +1,12 @@
 'use strict';
 
-var libcore = require("libcore");
 
+import {
+            string,
+            object,
+            array
+            
+        } from "libcore";
 
 function StateMap() {
     this.reset();
@@ -34,7 +39,6 @@ StateMap.prototype = {
         if (state in ends) {
             current = ends[state];
             if (current[0] !== name || current[1] !== params) {
-                //console.log(this);
                 throw new Error("Reduce conflict found " +
                                 current[0] + ' ! <- ' + name);
             }
@@ -62,7 +66,7 @@ StateMap.prototype = {
         var current = this.exclude;
         var c, l;
         
-        if (libcore.array(exclude)) {
+        if (array(exclude)) {
             for (c = -1, l = exclude.length; l--;) {
                 current[exclude[++c]] = true;
             }
@@ -70,17 +74,16 @@ StateMap.prototype = {
     },
     
     importStates: function (definition) {
-        var lib = libcore,
-            object = lib.object,
-            isString = lib.string;
+        var isObject = object,
+            isString = string;
         var start, states, anchors, ends, root;
         
-        if (!object(definition)) {
+        if (!isObject(definition)) {
             throw new Error("Invalid Object definition parameter.");
         }
         
         states = definition.states;
-        if (!object(states)) {
+        if (!isObject(states)) {
             throw new Error(
                         'Invalid "states" Object in definition parameter.');
         }
@@ -92,18 +95,18 @@ StateMap.prototype = {
         }
         
         start = definition.start;
-        if (!lib.string(start) || !(start in states)) {
+        if (!isString(start) || !(start in states)) {
             throw new Error(
                         'Invalid "start" state in definition parameter.');
         }
         
         anchors = definition.anchors;
-        if (!object(anchors)) {
+        if (!isObject(anchors)) {
             throw new Error('Invalid "anchors" states in definition parameter.');
         }
         
         ends = definition.ends;
-        if (!object(anchors)) {
+        if (!isObject(anchors)) {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
         
@@ -145,4 +148,4 @@ StateMap.prototype = {
 };
 
 
-module.exports = StateMap;
+export default StateMap;

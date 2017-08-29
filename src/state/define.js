@@ -1,6 +1,6 @@
 'use strict';
 
-var StateObject = require("./object.js");
+import StateObject from "./object.js";
 
 function define(grammar, map, exclude) {
     
@@ -84,4 +84,4 @@ function define(grammar, map, exclude) {
 }
 
 
-module.exports = define;
+export default define;

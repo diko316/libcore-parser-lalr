@@ -1,10 +1,5 @@
-(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('libcore'), require('libcore-tokenizer')) :
-	typeof define === 'function' && define.amd ? define(['exports', 'libcore', 'libcore-tokenizer'], factory) :
-	(factory((global['libcore-parser-lalr'] = {}),global.libcore,global['libcore-tokenizer']));
-}(this, (function (exports,libcore,Tokenizer) { 'use strict';
-
-Tokenizer = Tokenizer && Tokenizer.hasOwnProperty('default') ? Tokenizer['default'] : Tokenizer;
+import { array, contains, method, number, object, regex, string } from 'libcore';
+import Tokenizer from 'libcore-tokenizer';
 
 function StateMap() {
     this.reset();
@@ -64,7 +59,7 @@ StateMap.prototype = {
         var current = this.exclude;
         var c, l;
         
-        if (libcore.array(exclude)) {
+        if (array(exclude)) {
             for (c = -1, l = exclude.length; l--;) {
                 current[exclude[++c]] = true;
             }
@@ -72,8 +67,8 @@ StateMap.prototype = {
     },
     
     importStates: function (definition) {
-        var isObject = libcore.object,
-            isString = libcore.string;
+        var isObject = object,
+            isString = string;
         var start, states, anchors, ends, root;
         
         if (!isObject(definition)) {
@@ -298,8 +293,8 @@ function define$1(name, rule, grammar, tokenizer) {
         lexIndex = grammar.lexIndex,
         ruleNames = grammar.ruleNames,
         ruleNameRe = RULE_NAME_RE,
-        isString = libcore.string,
-        isRegex = libcore.regex;
+        isString = string,
+        isRegex = regex;
     var l, item, lexemes, token, tokenId, created,
         prefix, suffix, from, to, current, lexemeId;
     
@@ -307,7 +302,7 @@ function define$1(name, rule, grammar, tokenizer) {
         rule = [rule];
     }
     
-    if (!libcore.array(rule)) {
+    if (!array(rule)) {
         throw new Error("Invalid grammar rule found in " + name);
     }
     
@@ -381,9 +376,9 @@ function define$1(name, rule, grammar, tokenizer) {
 
 
 function build(root, stateMap, tokenizer, definitions, exclude) {
-    var isString = libcore.string,
-        isArray = libcore.array,
-        isRegex = libcore.regex,
+    var isString = string,
+        isArray = array,
+        isRegex = regex,
         defineRule = define$1,
         ruleNameRe = RULE_NAME_RE,
         ruleNames = [];
@@ -473,7 +468,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         
     }
     
-    if (!libcore.contains(rules, root)) {
+    if (!contains(rules, root)) {
         throw new Error("Invalid root grammar rule parameter.");
     }
     //console.log("map? ", stateMap);
@@ -511,7 +506,7 @@ Lexeme.prototype = {
     
     useType: function (type) {
         var types = TYPE;
-        this.type = libcore.contains(types, type) ?
+        this.type = contains(types, type) ?
                         types[type] : types.token;
     }
 };
@@ -519,7 +514,7 @@ Lexeme.prototype = {
 var INVALID_STATE_HANDLER = "Invalid result from state handler";
 
 function BaseIterator(parser) {
-    if (!libcore.object(parser)) {
+    if (!object(parser)) {
         throw new Error("Invalid parser parameter.");
     }
     
@@ -814,7 +809,7 @@ BaseIterator.prototype = {
     },
     
     set: function (subject) {
-        if (!libcore.string(subject)) {
+        if (!string(subject)) {
             throw new Error("Invalid String subject parameter.");
         }
         
@@ -828,7 +823,7 @@ BaseIterator.prototype = {
     next: function () {
         var me = this,
             actions = me.actions,
-            isNumber = libcore.number,
+            isNumber = number,
             completed = me.completed,
             returns = false;
         var state, params, result, ref, current;
@@ -897,11 +892,11 @@ var ITERATORS = {};
 function register(name, Class) {
         var Base = BaseIterator;
         
-        if (!libcore.string(name)) {
+        if (!string(name)) {
             throw new Error("Invalid iterator name parameter.");
         }
         
-        if (!libcore.method(Class) ||
+        if (!method(Class) ||
             (Class !== Base && !(Class.prototype instanceof Base))) {
             throw new Error("Invalid iterator Class parameter.");
         }
@@ -914,7 +909,7 @@ function register(name, Class) {
 function get(name) {
         var list = ITERATORS;
         
-        if (libcore.string(name)) {
+        if (string(name)) {
             name = ':' + name;
             if (name in list) {
                 return list[name];
@@ -962,14 +957,14 @@ Parser.prototype = {
     },
     
     define: function (root, definition, exclude) {
-        var isArray = libcore.array;
+        var isArray = array;
         var ready;
         
         if (!isArray(exclude)) {
             exclude = [];
         }
         
-        if (!libcore.string(root)) {
+        if (!string(root)) {
             throw new Error("Invalid root grammar rule parameter.");
         }
         
@@ -989,10 +984,10 @@ Parser.prototype = {
     },
     
     fromJSON: function (json) {
-        var isObject = libcore.object;
+        var isObject = object;
         var tokenMap;
         
-        if (libcore.string(json)) {
+        if (string(json)) {
             try {
                 json = JSON.parse(json);
             }
@@ -1036,7 +1031,7 @@ Parser.prototype = {
     },
     
     parse: function (subject, reducer, iterator) {
-        var isString = libcore.string,
+        var isString = string,
             rpn = [],
             rl = 0;
         var lexeme, name, value;
@@ -1053,7 +1048,7 @@ Parser.prototype = {
             throw new Error("Invalid Iterator parameter.");
         }
         
-        if (!libcore.object(reducer)) {
+        if (!object(reducer)) {
             reducer = {};
         }
         
@@ -1089,7 +1084,7 @@ function define(root, definitions, exclusions) {
 function load(json) {
         var parser;
         
-        if (libcore.string(json)) {
+        if (string(json)) {
             try {
                 json = JSON.parse(json);
             }
@@ -1099,7 +1094,7 @@ function load(json) {
                     e.toString());
             }
         }
-        else if (!libcore.object(json)) {
+        else if (!object(json)) {
             throw new Error("Unable to load from invalid json Object parameter.");
         }
         
@@ -1140,15 +1135,6 @@ var moduleApi$1 = Object.freeze({
 	registerIterator: register
 });
 
-exports['default'] = moduleApi$1;
-exports.Parser = Parser;
-exports.define = define;
-exports.load = load;
-exports.isParser = isParser;
-exports.Iterator = BaseIterator;
-exports.registerIterator = register;
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
-//# sourceMappingURL=libcore-parser-lalr.js.map
+export { Parser, define, load, isParser, BaseIterator as Iterator, register as registerIterator };
+export default moduleApi$1;
+//# sourceMappingURL=libcore-parser-lalr.es.js.map

@@ -1,9 +1,9 @@
 'use strict';
 
+import createParser from "./setup.sample.js";
 
 describe("Parser can export Lexer data using toJSON() or toObject() methods",
     function () {
-        var createParser = require('./setup.sample.js');
         
         it('1. Should export JSON String lexer data.',
             function () {
@@ -25,7 +25,7 @@ describe("Parser can export Lexer data using toJSON() or toObject() methods",
         
         it('2. Should export Object lexer data.',
             function () {
-                var parser, json;
+                var parser;
                 
                 function exportToObject() {
                     parser = createParser();

@@ -63,4 +63,4 @@ function defineSampleParser() {
     
 }
 
-module.exports = defineSampleParser;
+export default defineSampleParser;

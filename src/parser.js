@@ -1,10 +1,23 @@
 'use strict';
 
-var libcore = require("libcore"),
-    Tokenizer = require("libcore-tokenizer"),
-    StateMap = require("./state/map.js"),
-    builder = require("./state/builder.js"),
-    iteratorManager = require("./iterator.js");
+import {
+            string,
+            object,
+            array
+
+        } from "libcore";
+
+import Tokenizer from "libcore-tokenizer";
+
+import StateMap from "./state/map.js";
+
+import builder from "./state/builder.js";
+
+import {
+            get as iteratorGet,
+            defaultIterator
+        } from "./iterator.js";
+
 
 function Parser(root, definition, exclude) {
     
@@ -25,36 +38,35 @@ Parser.prototype = {
     constructor: Parser,
     
     iterator: function (name) {
-        var mgr = iteratorManager;
+        var get = iteratorGet;
         var Iterator;
         
         if (arguments.length) {
-            Iterator = mgr.get(name);
+            Iterator = get(name);
             if (!Iterator) {
                 throw new Error("Invalid iterator name parameter.");
             }
         }
         else {
-            Iterator = mgr.get(mgr.defaultIterator);
+            Iterator = get(defaultIterator);
         }
         
         return new Iterator(this);
     },
     
     define: function (root, definition, exclude) {
-        var lib = libcore,
-            array = lib.array;
+        var isArray = array;
         var ready;
         
-        if (!array(exclude)) {
+        if (!isArray(exclude)) {
             exclude = [];
         }
         
-        if (!lib.string(root)) {
+        if (!string(root)) {
             throw new Error("Invalid root grammar rule parameter.");
         }
         
-        if (!array(definition)) {
+        if (!isArray(definition)) {
             throw new Error("Invalid grammar rules definition parameter");
         }
         
@@ -70,11 +82,10 @@ Parser.prototype = {
     },
     
     fromJSON: function (json) {
-        var lib = libcore,
-            object = lib.object;
+        var isObject = object;
         var tokenMap;
         
-        if (lib.string(json)) {
+        if (string(json)) {
             try {
                 json = JSON.parse(json);
             }
@@ -83,13 +94,13 @@ Parser.prototype = {
             }
         }
         
-        if (!object(json)) {
+        if (!isObject(json)) {
             throw new Error("Invalid Object json parameter.");
         }
         
         tokenMap = json.tokens;
         
-        if (!object(tokenMap)) {
+        if (!isObject(tokenMap)) {
             throw new Error('Invalid "tokens" property of json parameter.');
         }
         
@@ -118,17 +129,16 @@ Parser.prototype = {
     },
     
     parse: function (subject, reducer, iterator) {
-        var lib = libcore,
-            string = lib.string,
+        var isString = string,
             rpn = [],
             rl = 0;
         var lexeme, name, value;
         
-        if (!string(subject)) {
+        if (!isString(subject)) {
             throw new Error("Invalid string subject parameter");
         }
         
-        iterator = lib.string(iterator) ?
+        iterator = isString(iterator) ?
                         this.iterator(iterator) :
                         this.iterator();
         
@@ -136,7 +146,7 @@ Parser.prototype = {
             throw new Error("Invalid Iterator parameter.");
         }
         
-        if (!lib.object(reducer)) {
+        if (!object(reducer)) {
             reducer = {};
         }
         
@@ -166,4 +176,4 @@ Parser.prototype = {
 };
 
 
-module.exports = Parser;
+export default Parser;

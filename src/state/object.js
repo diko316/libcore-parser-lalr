@@ -1,6 +1,6 @@
 'use strict';
 
-var helper = require("../helper.js");
+import { clone } from "../helper.js";
 
 function StateObject(map, id) {
     this.id = id;
@@ -18,7 +18,7 @@ StateObject.prototype = {
     lexemes: null,
     
     clone: function (rid) {
-        var dupe = helper.clone(this);
+        var dupe = clone(this);
         if (rid) {
             dupe.rid = rid;
         }
@@ -56,5 +56,4 @@ StateObject.prototype = {
     }
 };
 
-
-module.exports = StateObject;
+export default StateObject;
