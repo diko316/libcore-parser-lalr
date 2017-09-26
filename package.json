@@ -1,6 +1,6 @@
 {
   "name": "libcore-parser-lalr",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "LR Parser (my way)",
   "main": "dist/libcore-parser-lalr.js",
   "module": "dist/libcore-parser-lalr.es.js",
@@ -50,7 +50,7 @@
     "rollup-plugin-uglify": "^2.0.1"
   },
   "optionalDependencies": {
-    "libcore": "0.3.5",
-    "libcore-tokenizer": "0.1.5"
+    "libcore": "0.3.7",
+    "libcore-tokenizer": "0.1.6"
   }
 }
