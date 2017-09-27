@@ -5,6 +5,9 @@
   "main": "dist/libcore-parser-lalr.js",
   "module": "dist/libcore-parser-lalr.es.js",
   "jsnext:main": "dist/libcore-parser-lalr.es.js",
+  "bin": {
+    "libcore-lalr-build": "./command-line/script.js"
+  },
   "scripts": {
     "test": "bin/build-bundle.sh test || exit 1",
     "start": "bin/build-bundle.sh start || exit 1",
