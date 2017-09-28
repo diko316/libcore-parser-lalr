@@ -122,7 +122,15 @@ function processArguments(pieces, options) {
     }
 
     // set pieces
-    if (!lib.array(pieces)) {
+    if (lib.array(pieces)) {
+        for (pc = -1, piecesLeft = pieces.length; piecesLeft--;) {
+            name = pieces[++pc];
+            if (isString(name)) {
+                result[name] = '';
+            }
+        }
+    }
+    else {
         pieces = [];
     }
     pc = 0;
