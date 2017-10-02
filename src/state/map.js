@@ -76,7 +76,7 @@ StateMap.prototype = {
     importStates: function (definition) {
         var isObject = object,
             isString = string;
-        var start, states, anchors, ends, root;
+        var start, states, anchors, ends, root, exclude;
         
         if (!isObject(definition)) {
             throw new Error("Invalid Object definition parameter.");
@@ -109,12 +109,18 @@ StateMap.prototype = {
         if (!isObject(anchors)) {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
+
+        exclude = definition.exclude;
+        if (!isObject(exclude)) {
+            throw new Error('Invalid "exclude" token in definition parameter.');
+        }
         
         this.root = root;
         this.start = start;
         this.states = states;
         this.anchors = anchors;
         this.ends = ends;
+        this.exclude = exclude;
         
         return true;
     },
@@ -125,7 +131,8 @@ StateMap.prototype = {
                 start: this.start,
                 states: this.states,
                 anchors: this.anchors,
-                ends: this.ends
+                ends: this.ends,
+                exclude: this.exclude
             };
     },
     
