@@ -217,7 +217,7 @@ function define$2(grammar, map, exclude) {
         ruleGroup = grammar.ruleGroup,
         vstate = new SO(map, map.start),
         rootName = "$end",
-        pending = [[ vstate, rootName]],
+        pending = [[vstate, rootName]],
         l = 1;
     var item, production, rule, lexeme, anchorState, ruleId, params,
         recurse, ident, next;
@@ -229,8 +229,16 @@ function define$2(grammar, map, exclude) {
     if (exclude) {
         map.setExcludes(exclude);
     }
+
+    //var limit = 1000;
     
     for (; l--;) {
+
+        // if (!--limit) {
+        //     //console.log("limit reached!!!! ", l);
+        //     break;
+        // }
+
         item = pending.splice(0, 1)[0];
         anchorState = item[0];
         production = item[1];
@@ -254,18 +262,23 @@ function define$2(grammar, map, exclude) {
                 lexeme = rule[1];
                 params++;
                 
-                
                 // for non-terminal
                 if (lexeme in ruleIndex) {
+
+                    ident = production + ':' + ruleId;
+
                     
-                    ident = vstate.rid;
-                    ident = ident ?
-                                ident + '-' + ruleId : ruleId;
+
+                    //console.log("ident ", ident, "lexeme ", lexeme, " = ", ruleIndex[lexeme]);
                     
-                    // recurse
+                    // ident = vstate.rid;
+                    // ident = ident ?
+                    //             ident + '-' + ruleId : ruleId;
+
+                    // // recurse
                     if (!(ident in vstate)) {
                         
-                        recurse = vstate.clone(ruleId);
+                        recurse = vstate.clone();
                         recurse[ident] = recurse;
                         pending[l++] = [recurse, lexeme];
                         
@@ -315,7 +328,6 @@ function define$1(name, rule, grammar, tokenizer) {
     
     from = to = null;
     lexemes = [];
-    
     
     for (l = rule.length; l--;) {
         item = rule[l];
@@ -375,7 +387,6 @@ function define$1(name, rule, grammar, tokenizer) {
         to[2] = current;
     }
     
-    
     rules[name] = from;
     
     return [from[2][0], to[0]];
@@ -411,7 +422,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
                        "$end", [
                             [ root, "$" ]
                         ]);
-    
+
     for (c = -1, l = definitions.length; l--;) {
         
         definition = definitions[++c];
@@ -478,7 +489,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     if (!contains(rules, root)) {
         throw new Error("Invalid root grammar rule parameter.");
     }
-    //console.log("map? ", stateMap);
+    
     return define$2(grammar, stateMap, exclude);
 
 }

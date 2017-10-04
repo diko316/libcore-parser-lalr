@@ -5,13 +5,15 @@
 
 let pkg = require('./package.json'),
     configure = require('./config/base.js'),
+    config = {},
     meta = {
         name: pkg.name,
         esTarget: pkg.module,
         target: pkg.main,
         moduleTarget: pkg.moduleName
-    },
-    config = {};
+    };
+    
+
 
 // base setup
 configure(config, meta);

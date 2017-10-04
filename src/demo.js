@@ -1,6 +1,6 @@
 'use strict';
 
-var Parser = require("./parser.js");
+import Parser from "./index.js";
 //var parser = new Parser("Expr",
 //                        [
 //                            "Expr", [
@@ -27,33 +27,32 @@ var Parser = require("./parser.js");
 //                            /[ \r\n\t]+/
 //                        ]);
 
-var parser = new Parser("Expr", // root grammar rule
-                        [ // grammar rules
-                            "Expr", [
-                                        "Add"
-                                    ],
+// var parser = new Parser("Expr", // root grammar rule
+//                         [ // grammar rules
+//                             "Expr", [
+//                                         "Add"
+//                                     ],
                             
-                            "Add",  [
-                                        ["Add", /\+/, "Mul"],
-                                        "Mul",
-                                    ],
-                            "Mul",  [
-                                        ["Mul", /\*/, "Unit"],
-                                        "Unit"
-                                    ],
-                            "Unit", [
-                                        "Number",
-                                        [/\(/, "Expr", /\)/]
-                                    ],
-                            "Number", [
-                                        /(\+|\-)?[0-9]+(\.[0-9]+)?/
-                                    ]
-                        ],
-                        // ignore these tokens
-                        [
-	                        /[ \r\n\t]+/
-                        ]);
-
+//                             "Add",  [
+//                                         ["Add", /\+/, "Mul"],
+//                                         "Mul",
+//                                     ],
+//                             "Mul",  [
+//                                         ["Mul", /\*/, "Unit"],
+//                                         "Unit"
+//                                     ],
+//                             "Unit", [
+//                                         "Number",
+//                                         [/\(/, "Expr", /\)/]
+//                                     ],
+//                             "Number", [
+//                                         /(\+|\-)?[0-9]+(\.[0-9]+)?/
+//                                     ]
+//                         ],
+//                         // ignore these tokens
+//                         [
+// 	                        /[ \r\n\t]+/
+//                         ]);
 
 
 //var parser = new Parser("Sentence", [
@@ -111,16 +110,48 @@ var parser = new Parser("Expr", // root grammar rule
 //                        [
 //                            /[ \t]+/ // ignore space
 //                        ]);
+var parser = Parser.define("Expr",
+[
+    "Expr", [
+                "Assign"
+            ],
+    
+    "Basic",  [
+                /Buang/,
+                /Chaching/,
+                [/\(/, "Expr", /\)/]
+            ],
 
+    "Operand",  [
+                "Basic",
+                ["Operand", /\./, "Basic"],
+                ["Operand", /\[/, "Expr", /\]/]
+            ],
+
+    "Assign",   [
+                ["Operand", /\=/, "Assign"],
+                "Operand"
+            ]
+],
+[
+    /[ \r\n\t]+/
+]);
 var iterator = parser.iterator();
 var lexeme;
 
-iterator.set('1 + 2 * 3');
+
+
+iterator.set('Buang = (Chaching = Buang.Buang)');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
+    
     console.log(lexeme.name,
-                lexeme.rule,
-                lexeme.value,
-                lexeme.reduceCount,
-                lexeme);
+                //lexeme.rule,
+                lexeme.value);
+                //lexeme.reduceCount,
+                //lexeme);
+
+    console.log(iterator.pstate);
 }
+
+console.log(iterator);

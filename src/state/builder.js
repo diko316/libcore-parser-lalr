@@ -35,7 +35,6 @@ function define(name, rule, grammar, tokenizer) {
     from = to = null;
     lexemes = [];
     
-    
     for (l = rule.length; l--;) {
         item = rule[l];
         
@@ -94,7 +93,6 @@ function define(name, rule, grammar, tokenizer) {
         to[2] = current;
     }
     
-    
     rules[name] = from;
     
     return [from[2][0], to[0]];
@@ -130,7 +128,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
                        "$end", [
                             [ root, "$" ]
                         ]);
-    
+
     for (c = -1, l = definitions.length; l--;) {
         
         definition = definitions[++c];
@@ -197,8 +195,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     if (!contains(rules, root)) {
         throw new Error("Invalid root grammar rule parameter.");
     }
-    //console.log("map? ", stateMap);
-    return defineStates(grammar, stateMap, exclude);
+    
+    return defineStates(grammar, stateMap, exclude) &&
+            stateMap.finalize();
 
 }
 

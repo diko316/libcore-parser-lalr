@@ -60,6 +60,14 @@ StateMap.prototype = {
         this.anchors = {};
         this.ends = {};
         this.exclude = {};
+        this.finalized = false;
+        this.stateCache = {};
+    },
+
+    finalize: function() {
+        if (!this.finalized) {
+            this.finalized = true;
+        }
     },
     
     setExcludes: function (exclude) {
