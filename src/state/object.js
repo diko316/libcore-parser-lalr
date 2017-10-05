@@ -1,16 +1,16 @@
 'use strict';
 
-import { clone } from "../helper.js";
+//import { clone } from "../helper.js";
+
+//import { each } from "libcore";
+
+import Pointer from "./pointer.js";
 
 function StateObject(map, id) {
-    if (!id) {
-        id = map.generateState();
-        map.stateCache[id] = this;
-    }
 
-    this.id = id;
+    this.id = id || map.generateState();
     this.map = map;
-    this.pointer = {};
+    this.merges = [this];
 
 }
 
@@ -18,87 +18,93 @@ StateObject.prototype = {
     constructor: StateObject,
     id: null,
     pointer: null,
-    
-    // clone: function () {
-    //     var dupe = clone(this);
-        
-    //     dupe.base = this;
+    base: null,
+    merges: null,
 
-    //     return dupe;
-    // },
+    point: function (lexeme) {
+        var target = this.getTarget(lexeme);
+        var pointer, last, after;
 
-    // recurseClone: function (ruleId) {
-    //     var dupe = this.clone();
+        if (!target) {
+            target = new StateObject(this.map);
+            pointer = new Pointer(lexeme, target);
 
-    //     dupe[ruleId] = dupe;
+            last = this.pointer;
+            this.pointer = pointer;
 
-    //     return dupe;
+            if (last) {
+                after = last.after;
+                if (after) {
+                    after.before = pointer;
+                    pointer.after = after;
+                }
 
-    // },
-
-    
-    point: function (ruleId, lexeme, vstate) {
-
-        var pointer = this.pointer;
-
-
-        if (lexeme in pointer) {
-
-            vstate = pointer[lexeme];
+                pointer.before = last;
+                
+            }
 
         }
-        else {
 
-            pointer[lexeme] = vstate = vstate || new StateObject(this.map);
+        return target;
 
-            this.map.states[this.id][lexeme] = vstate.id;
+    },
+
+    getTarget: function (lexeme) {
+        var list = this.merges,
+            l = list.length;
+        var pointer;
+
+
+        for (; l--;) {
+            pointer = list[l].pointer;
+            
+            for (; pointer; pointer = pointer.before) {
+                if (pointer.item === lexeme) {
+                    return pointer.to;
+                }
+            }
         }
 
-        //var pointers = this.map.states[this.id];
+        return null;
+    },
 
-        //console.log("has transition ", this.id, '->', lexeme,' ? ', lexeme in pointers ? pointers[lexeme] : false);
+    merge: function (state) {
+        var list = this.merges;
 
-        //console.log('pointing ', this.id, ':', lexeme, '->', vstate.id);
-
-        return vstate;
+        if (list.indexOf(state) === -1) {
+            list[list.length] = state;
+        }
         
+    },
 
+    finalize: function () {
+        var map = this.map,
+            mapPointer = map.states[this.id],
+            list = this.merges,
+            l = list.length;
+        var pointer, item, target;
 
-        //vstate
+        if (this.id === 's36') {
+            console.log(list);
+        }
 
+        for (; l--;) {
+            pointer = this.pointer;
+            
+            for (; pointer; pointer = pointer.before) {
+                item = pointer.item;
+                target = pointer.to.id;
 
+                if (!(item in mapPointer)) {
+                    mapPointer[item] = target;
+                }
+            }
+        }
 
+        return null;
 
-
-
-
-
-
-        // var pointer = this.pointer,
-        //     map = this.map,
-        //     base = this.base;
-        // var vstate, id;
-
-        // if (!(lexeme in pointer)) {
-
-        //     id = map.generateState();
-        //     vstate = base.clone();
-        //     vstate.id = id;
-        //     vstate.pointer = {};
-
-        //     pointer[lexeme] = vstate;
-
-        //     map.states[this.id][lexeme] = id;
-        // }
-
-        // return pointer[lexeme];
-
-        
     }
-    
-    // reduce: function (rule, params, ruleIndex) {
-    //     this.map.setReduceState(this.id, rule, params, ruleIndex);
-    // }
+
 };
 
 export default StateObject;

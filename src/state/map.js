@@ -61,7 +61,6 @@ StateMap.prototype = {
         this.ends = {};
         this.exclude = {};
         this.finalized = false;
-        this.stateCache = {};
     },
 
     finalize: function() {
