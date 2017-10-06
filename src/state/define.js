@@ -1,14 +1,176 @@
 'use strict';
 
-import StateObject from "./object.js";
+import Item from "./define/item.js";
 
-import Recursion from "./recursion.js";
+import StateObject from "./object.js";
 
 import { clone } from "../helper.js";
 
 
-
 function define(grammar, map, exclude) {
+    var SO = StateObject,
+        DI = Item,
+
+        STATE_END = 0,
+        STATE_START = 1,
+        STATE_RULE_ITERATE = 2,
+        STATE_RULE_RECURSE_SETUP = 3,
+        STATE_RULE_START = 4,
+        STATE_RULE_END = 5,
+
+        duplicate = clone,
+        defineState = STATE_START,
+        ruleIndex = grammar.rules,
+        ruleGroup = grammar.ruleGroup,
+        vstate = new SO(map, map.start),
+        item = new DI(new SO(map, map.start), null);
+
+    var anchor, production, rule, lexeme, ruleId, params,
+        recursion, pendingRecursion;
+
+    map.reset();
+    map.root = grammar.root;
+
+    if (exclude) {
+        map.setExcludes(exclude);
+    }
+
+    console.log(grammar);
+
+    var limit = 1000;
+    
+    for (; defineState;) {
+
+        if (!--limit) {
+            console.log("limit reached!!!! ", l);
+            break;
+        }
+
+        switch (defineState) {
+        case STATE_START:
+            if (!item) {
+                defineState = STATE_END;
+                break;
+            }
+
+            anchor = item.state;
+            production = item.lexeme;
+            
+            rule = ruleIndex[production];
+
+            defineState = STATE_RULE_ITERATE;
+
+            pendingRecursion = null;
+
+        /* falls through */
+        case STATE_RULE_ITERATE:
+            // go to next pending
+            if (!rule) {
+                defineState = STATE_RULE_END;
+                break;
+            }
+            
+            ruleId = rule[0];
+            lexeme = rule[1];
+
+            // go to next rule
+            rule = rule[2];
+
+            // start of rule
+            if (ruleId === false) {
+                params = 0;
+                vstate = anchor;
+                break;
+            }
+
+            // connect states
+            params++;
+
+            // non-terminal
+            if (lexeme in ruleIndex) {
+
+                // find recursion
+                recursion = item.getRecursionRule(ruleId);
+                
+                // follow recursion
+                if (recursion) {
+
+                    // merge pointers pointed by recursion
+                    item.merge(recursion);
+
+                    // end here
+                    for (; rule && rule[0] !== false; rule = rule[2]) { }
+                    break;
+
+                }
+
+                // create recursion
+                recursion = item.createRecursion(vstate, ruleId, lexeme);
+
+                // immediately insert if anchor
+                if (vstate === anchor) {
+                    item.insertNext(recursion);
+
+                }
+                // add to pending
+                else if (pendingRecursion) {
+                    pendingRecursion.append(recursion);
+                }
+                // first pending recursion
+                else {
+                    pendingRecursion = recursion;
+                }
+                
+            }
+
+            // if (!(lexeme in vpointer)) {
+            //     //vstate.point(lexeme, new SO(map));
+            // }
+
+            // vstate = vpointer[lexeme];
+            // vpointer = vstate.pointer;
+
+            // reduce if no more next rules or end of lexer rule
+            // if (!rule || rule[0] === false) {
+            //     map.setReduceState(vstate.id,
+            //                         production,
+            //                         params,
+            //                         ruleGroup[ruleId]);
+                
+            // }
+        
+        break;
+        case STATE_RULE_END:
+            // insert pending recursions
+            if (pendingRecursion) {
+                item.append(pendingRecursion);
+            }
+
+            // try next pending
+            item = item.next;
+            defineState = STATE_START;
+        break;
+        }
+
+    }        
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function oldDefine2(grammar, map, exclude) {
     var SO = StateObject,
         STATE_END = 0,
         STATE_START = 1,
@@ -68,8 +230,7 @@ function define(grammar, map, exclude) {
 
             defineState = STATE_RULE_ITERATE;
 
-            pendingRecursions.length = pl = 0;
-            console.log("start ", production);
+            
 
         /* falls through */
         case STATE_RULE_ITERATE:
@@ -78,7 +239,6 @@ function define(grammar, map, exclude) {
                 defineState = STATE_RULE_END;
                 break;
             }
-
             
             ruleId = rule[0];
             lexeme = rule[1];
@@ -92,8 +252,8 @@ function define(grammar, map, exclude) {
                 vstate = anchor;
                 break;
             }
-            
-            
+
+            // connect states
             params++;
 
             // non-terminal
@@ -117,7 +277,7 @@ function define(grammar, map, exclude) {
                 else {
                     recurseObject = duplicate(recursion);
                     recurseObject[ruleId] = vstate;
-                    pendingRecursions[pl++] = [vstate, lexeme, recurseObject];
+                    //pendingRecursions[pl++] = [vstate, lexeme, recurseObject];
 
 
                     //console.log("recursing ", vstate.id, ':', lexeme, ' rule ', ruleId);
@@ -157,17 +317,17 @@ function define(grammar, map, exclude) {
 
         case STATE_RULE_END:
             // process pending recursions
-            if (pl) {
-                l += pendingRecursions.length;
-                pending.push.apply(pending, pendingRecursions);
-            }
+            // if (pl) {
+            //     l += pendingRecursions.length;
+            //     pending.push.apply(pending, pendingRecursions);
+            // }
             
             // for (c = -1; pl--;) {
             //     recurseObject = pendingRecursions[++c];
             //     pending[l++] = recurseObject;
             // }
             
-            console.log("ended ", production);
+            
             // try next pending
             defineState = STATE_START;
             break;
@@ -180,9 +340,9 @@ function define(grammar, map, exclude) {
 
 
     // finalize
-    for (c = -1; sl--;) {
-        states[++c].finalize();
-    }
+    // for (c = -1; sl--;) {
+    //     states[++c].finalize();
+    // }
 
 }
 

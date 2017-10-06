@@ -47,62 +47,6 @@ StateObject.prototype = {
 
         return target;
 
-    },
-
-    getTarget: function (lexeme) {
-        var list = this.merges,
-            l = list.length;
-        var pointer;
-
-
-        for (; l--;) {
-            pointer = list[l].pointer;
-            
-            for (; pointer; pointer = pointer.before) {
-                if (pointer.item === lexeme) {
-                    return pointer.to;
-                }
-            }
-        }
-
-        return null;
-    },
-
-    merge: function (state) {
-        var list = this.merges;
-
-        if (list.indexOf(state) === -1) {
-            list[list.length] = state;
-        }
-        
-    },
-
-    finalize: function () {
-        var map = this.map,
-            mapPointer = map.states[this.id],
-            list = this.merges,
-            l = list.length;
-        var pointer, item, target;
-
-        if (this.id === 's36') {
-            console.log(list);
-        }
-
-        for (; l--;) {
-            pointer = this.pointer;
-            
-            for (; pointer; pointer = pointer.before) {
-                item = pointer.item;
-                target = pointer.to.id;
-
-                if (!(item in mapPointer)) {
-                    mapPointer[item] = target;
-                }
-            }
-        }
-
-        return null;
-
     }
 
 };
