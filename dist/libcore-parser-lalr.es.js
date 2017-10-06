@@ -8,6 +8,7 @@ function StateMap() {
 
 StateMap.prototype = {
     stateGen: 0,
+    rawStates: null,
     
     constructor: StateMap,
     
@@ -53,6 +54,26 @@ StateMap.prototype = {
         this.anchors = {};
         this.ends = {};
         this.exclude = {};
+        this.finalized = false;
+        this.rawStates = [];
+    },
+
+    finalize: function() {
+        var list = this.rawStates;
+        var c, l;
+
+        if (!this.finalized && list) {
+            this.finalized = true;
+
+            for (c = -1, l = list.length; l--;) {
+                list[++c].finalize();
+            }
+
+            // remove raw states
+            list.length = 0;
+        }
+        
+        return this.finalized;
     },
     
     setExcludes: function (exclude) {
@@ -156,152 +177,365 @@ function clone(obj) {
         return new E();
     }
 
-function StateObject(map, id) {
-    this.id = id;
-    this.map = map;
-    this.pointer = {};
-    this.lexemes = [];
+function Pointer(lexeme, state) {
+
+    this.item = lexeme;
+
+    // bind
+    this.to = state;
+
 }
 
-StateObject.prototype = {
-    constructor: StateObject,
-    id: null,
-    pointer: null,
-    parent: null,
-    rid: null,
-    lexemes: null,
-    
-    clone: function (rid) {
-        var dupe = clone(this);
-        if (rid) {
-            dupe.rid = rid;
-        }
-        dupe.parent = this;
+Pointer.prototype = {
+    constructor: Pointer,
+    next: null,
+    item: null,
+    to: null
 
-        return dupe;
-    },
+};
+
+function Item(id, map) {
+    var list = map.rawStates;
     
+    this.map = map;
+    this.state = id = id || map.generateState();
+    this.base = this;
+    this.watched = [];
+    this.reduceList = [];
+
+    // register as raw state
+    list[list.length] = this;
+
+}
+
+Item.prototype = {
+    state: null,
+    constructor: Item,
+    nextInQueue: null,
+    parent: null,
+    map: null,
+    pointer: null,
+    watched: null,
+    contextPointer: null,
+    reduceList: null,
+    lexeme: "$end",
+    recursion: {},
+    finalized: false,
+
+    getRecursionItem: function (ruleId) {
+        var recursion = this.recursion;
+
+        return ruleId in recursion ? recursion[ruleId] : null;
+
+    },
+
+    insertNextQueue: function (item) {
+        var after = this.nextInQueue,
+            last = item;
+
+        this.nextInQueue = item;
+
+        // connect last item with my next item
+        for (; last.nextInQueue; last = last.nextInQueue) { }
+
+        last.nextInQueue = after;
+
+    },
+
+    appendQueue: function (item) {
+        var last = this;
+
+        for (; last.nextInQueue; last = last.nextInQueue) { }
+
+        last.nextInQueue = item;
+
+    },
+
+    createRecursion: function (ruleId, lexeme) {
+        var duplicate = clone,
+            item = duplicate(this),
+            recursion = duplicate(this.recursion);
+
+        item.parent = this;
+
+        item.lexeme = lexeme;
+        item.recursion = recursion;
+        recursion[ruleId] = item;
+
+        item.contextPointer =
+            item.nextInQueue = null;
+
+        return item;
+    },
+
+    getPointerItem: function getPointerItem(lexeme) {
+        var pointer = this.pointer;
+
+        // find from parent and up
+        for (; pointer; pointer = pointer.next) {
+            if (pointer.item === lexeme) {
+                return pointer.to;
+            }
+        }
+
+        return null;
+
+    },
+
     point: function (lexeme) {
-        var pointer = this.pointer,
-            lexemes = this.lexemes,
-            map = this.map;
-        var vstate, state;
-        
-        if (!(lexeme in pointer)) {
-            state = this.map.generateState();
-            vstate = this.clone();
-            vstate.id = state;
-            vstate.pointer = {};
-            vstate.lexemes = [];
+
+        var Class = Pointer,
+            found = this.getPointerItem(lexeme);
+        var list, c, len, item, has;
+
+        // create if not found
+        if (!found) {
+
+            // create item
+            found = new Item(null, this.map);
+            found.lexeme = lexeme;
+
+            // share recursion
+            found.recursion = this.recursion;
+
+            // create pointer
+            this.onSetPointer(new Class(lexeme, found));
+
+            // populate dependencies
+            list = this.watched;
+
+            for (c = -1, len = list.length; len--;) {
+                item = list[++c];
+                has = item.getPointerItem(lexeme);
+                if (!has) {
+                    item.onSetPointer(new Class(lexeme, found));
+                }
+            }
+        }
+
+        return found;
+
+    },
+
+    watchItem: function (item) {
+        var list = this.watched,
+            Class = Pointer;
+        var pointer, lexeme, found;
+
+        if (item.state !== this.state && list.indexOf(item) === -1) {
             
-            lexemes[lexemes.length] = lexeme;
-            
-            pointer[lexeme] = vstate;
-            //console.log(this.id, ':', lexeme, '-> ', state);
-            map.states[this.id][lexeme] = state;
+            list[list.length] = item;
+
+            pointer = this.pointer;
+
+            // add current pointers
+            for (; pointer; pointer = pointer.next) {
+                lexeme = pointer.item;
+                found = item.getPointerItem(lexeme);
+
+                if (!found) {
+                    item.onSetPointer(new Class(lexeme, pointer.to));
+                }
+            }
         }
         
-        return pointer[lexeme];
-        
     },
-    
-    reduce: function (rule, params, ruleIndex) {
-        this.map.setReduceState(this.id, rule, params, ruleIndex);
+
+    onSetPointer: function (pointer) {
+        var last = this.pointer,
+            context = this.contextPointer;
+        var parent;
+
+        // connect to last item
+        if (last) {
+            // connect last
+            for (; last.next; last = last.next) {}
+            last.next = pointer;
+
+        }
+        // new pointer
+        else {
+            // set base pointer
+            this.base.pointer = pointer;
+        }
+
+        // populate context pointer across parents
+        if (!context) {
+            // populate parent context pointers
+            parent = this;
+            for (; parent; parent = parent.parent) {
+                if (!parent.contextPointer) {
+                    parent.contextPointer = pointer;
+                }
+            }
+        }
+    },
+
+    finalize: function () {
+        var map = this.map,
+            id = this.state,
+            stateObject = map.states[id];
+
+        var list, c, len, item, lexeme;
+
+        // finalize main pointers
+        item = this.pointer;
+
+        for (; item; item = item.next) {
+            lexeme = item.item;
+
+            if (!(lexeme in stateObject)) {
+                stateObject[lexeme] = item.to.state;
+            }
+        }
+
+        // reduce
+        list = this.reduceList;
+        for (c = -1, len = list.length; len--;) {
+            item = list[++c];
+            map.setReduceState(id, item[0], item[1], item[2]);
+        }
+
+    },
+
+    reduce: function (production, params, group) {
+        var list = this.reduceList;
+
+        list[list.length] = [production, params, group];
+
     }
+
 };
 
 function define$2(grammar, map, exclude) {
-    
-    var SO = StateObject,
+    var STATE_END = 0,
+        STATE_START = 1,
+        STATE_RULE_ITERATE = 2,
+        STATE_RULE_END = 5,
+
+        defineState = STATE_START,
         ruleIndex = grammar.rules,
-        ruleGroup = grammar.ruleGroup,
-        vstate = new SO(map, map.start),
-        rootName = "$end",
-        pending = [[vstate, rootName]],
-        l = 1;
-    var item, production, rule, lexeme, anchorState, ruleId, params,
-        recurse, ident, next;
-        
+        ruleGroup = grammar.ruleGroup;
+
+    var anchor, production, rule, lexeme, ruleId, params,
+        queue, recursion, pendingRecursion, item;
+
     map.reset();
-    
     map.root = grammar.root;
-    
+
     if (exclude) {
         map.setExcludes(exclude);
     }
 
-    //var limit = 1000;
+    queue = new Item(map.start, map);
     
-    for (; l--;) {
+    for (; defineState;) {
 
-        // if (!--limit) {
-        //     //console.log("limit reached!!!! ", l);
-        //     break;
-        // }
+        switch (defineState) {
+        case STATE_START:
+            if (!queue) {
+                defineState = STATE_END;
+                break;
+            }
 
-        item = pending.splice(0, 1)[0];
-        anchorState = item[0];
-        production = item[1];
-        
-        // iterate rules
-        rule = ruleIndex[production];
-
-
-        for (; rule; rule = next) {
-            ruleId = rule[0];
-            next = rule[2];
+            anchor = queue;
+            production = queue.lexeme;
             
-            // reset
+            rule = ruleIndex[production];
+
+            defineState = STATE_RULE_ITERATE;
+
+            pendingRecursion = null;
+
+        /* falls through */
+        case STATE_RULE_ITERATE:
+            // go to next pending
+            if (!rule) {
+                defineState = STATE_RULE_END;
+                break;
+            }
+            
+            ruleId = rule[0];
+            lexeme = rule[1];
+
+            // go to next rule
+            rule = rule[2];
+
+            // start of rule
             if (ruleId === false) {
                 params = 0;
-                vstate = anchorState;
-                
+                queue = item = anchor;
+                break;
             }
-            // run rule
-            else {
-                lexeme = rule[1];
-                params++;
+
+            // connect states
+            params++;
+
+            // non-terminal
+            if (lexeme in ruleIndex) {
+
+                // find recursion
+                recursion = item.getRecursionItem(ruleId);
                 
-                // for non-terminal
-                if (lexeme in ruleIndex) {
+                // follow recursion
+                if (recursion) {
 
-                    ident = production + ':' + ruleId;
+                    // apply and watch updates
+                    recursion.watchItem(item);
 
-                    
+                    // end here
+                    for (; rule && rule[0] !== false; rule = rule[2]) { }
+                    break;
 
-                    //console.log("ident ", ident, "lexeme ", lexeme, " = ", ruleIndex[lexeme]);
-                    
-                    // ident = vstate.rid;
-                    // ident = ident ?
-                    //             ident + '-' + ruleId : ruleId;
-
-                    // // recurse
-                    if (!(ident in vstate)) {
-                        
-                        recurse = vstate.clone();
-                        recurse[ident] = recurse;
-                        pending[l++] = [recurse, lexeme];
-                        
-                    }
-                    
                 }
-                
-                // only if not skipped
-                vstate = vstate.point(lexeme);
-                
-                // set reduce state
-                if (!next || next[0] === false) {
-                    vstate.reduce(production, params, ruleGroup[ruleId]);
+
+                // create recursion
+                recursion = item.createRecursion(ruleId, lexeme);
+
+                // immediately insert if anchor
+                if (queue === anchor) {
+                    queue.insertNextQueue(recursion);
+
+                }
+                // add to pending
+                else if (pendingRecursion) {
+                    pendingRecursion.appendQueue(recursion);
+                }
+                // first pending recursion
+                else {
+                    pendingRecursion = recursion;
                 }
                 
             }
             
+            item = item.point(lexeme);
+
+            // reduce if no more next rules or end of lexer rule
+            if (!rule || rule[0] === false) {
+                item.reduce(production, params, ruleGroup[ruleId]);
+            }
+        
+        break;
+        case STATE_RULE_END:
+
+            // insert pending recursions
+            if (pendingRecursion) {
+                queue.appendQueue(pendingRecursion);
+            }
+
+            // try next pending
+            queue = queue.nextInQueue;
+            defineState = STATE_START;
+
+        break;
         }
 
-        
     }
     
+    
+    // build state map
     return true;
+    
 }
 
 var RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
@@ -490,7 +724,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         throw new Error("Invalid root grammar rule parameter.");
     }
     
-    return define$2(grammar, stateMap, exclude);
+    return define$2(grammar, stateMap, exclude) &&
+            stateMap.finalize();
 
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "libcore-parser-lalr",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "LR Parser (my way)",
   "main": "dist/libcore-parser-lalr.js",
   "module": "dist/libcore-parser-lalr.es.js",

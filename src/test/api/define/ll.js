@@ -73,7 +73,7 @@ describe('Declares LALR grammar using ' +
             function () {
                 var list = output,
                     current = -1;
-                var iterator, lexeme, item;
+                var iterator, lexeme, item, verify;
 
                 expect(defineGrammar).not.toThrow();
 
@@ -84,18 +84,15 @@ describe('Declares LALR grammar using ' +
                 for (; lexeme; lexeme = iterator.next()) {
                     item = {
                         name: lexeme.name,
-                        type: lexeme.type,
                         reduceCount: lexeme.reduceCount
                     };
+                    if (lexeme.type) {
+                        item.type = lexeme.type;
+                    }
 
-                    expect(item).toEqual(list[++current]);
+                    verify = list[++current];
 
-
-                    // console.log(lexeme.name,
-                    //             lexeme.rule,
-                    //             lexeme.value,
-                    //             lexeme.reduceCount,
-                    //             lexeme);
+                    expect(item).toEqual(verify);
                 }
 
             });

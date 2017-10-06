@@ -79,6 +79,8 @@ StateMap.prototype = {
             // remove raw states
             list.length = 0;
         }
+        
+        return this.finalized;
     },
     
     setExcludes: function (exclude) {

@@ -129,7 +129,7 @@ function define(grammar, map, exclude) {
     
     
     // build state map
-    map.finalize();
+    return true;
     
 }
 
