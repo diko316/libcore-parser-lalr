@@ -136,7 +136,9 @@ var parser = Parser.define("Expr",
 [
     /[ \r\n\t]+/
 ]);
-var iterator = parser.iterator();
+var iterator = parser.iterator(),
+    output = [],
+    ol = 0;
 var lexeme;
 
 
@@ -144,14 +146,18 @@ var lexeme;
 iterator.set('Buang = (Chaching = Buang.Buang)');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
-    
-    console.log(lexeme.name,
-                //lexeme.rule,
-                lexeme.value);
-                //lexeme.reduceCount,
-                //lexeme);
+    output[ol++] = {
+        name: lexeme.name,
+        type: lexeme.type,
+        reduceCount: lexeme.reduceCount
+    };
+    // console.log(lexeme.name,
+    //             lexeme.value,
+    //             lexeme.reduceCount);
 
-    console.log(iterator.pstate);
 }
+
+console.log(JSON.stringify(output));
+
 
 console.log(iterator);

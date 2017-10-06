@@ -5,7 +5,33 @@ describe('Declares LALR grammar using ' +
     'define(root:String, definitions:Array [, exclusions:Array]) method',
     function () {
 
-        var parser;
+        var output = [{"name":"/Buang/","type":1,"reduceCount":0},
+                        {"name":"Basic","type":2,"reduceCount":1},
+                        {"name":"Operand","type":2,"reduceCount":1},
+                        {"name":"/\\=/","type":1,"reduceCount":0},
+                        {"name":"/\\(/","type":1,"reduceCount":0},
+                        {"name":"/Chaching/","type":1,"reduceCount":0},
+                        {"name":"Basic","type":2,"reduceCount":1},
+                        {"name":"Operand","type":2,"reduceCount":1},
+                        {"name":"/\\=/","type":1,"reduceCount":0},
+                        {"name":"/Buang/","type":1,"reduceCount":0},
+                        {"name":"Basic","type":2,"reduceCount":1},
+                        {"name":"Operand","type":2,"reduceCount":1},
+                        {"name":"/\\./","type":1,"reduceCount":0},
+                        {"name":"/Buang/","type":1,"reduceCount":0},
+                        {"name":"Basic","type":2,"reduceCount":1},
+                        {"name":"Operand","type":2,"reduceCount":3},
+                        {"name":"Assign","type":2,"reduceCount":1},
+                        {"name":"Assign","type":2,"reduceCount":3},
+                        {"name":"Expr","type":2,"reduceCount":1},
+                        {"name":"/\\)/","type":1,"reduceCount":0},
+                        {"name":"Basic","type":2,"reduceCount":3},
+                        {"name":"Operand","type":2,"reduceCount":1},
+                        {"name":"Assign","type":2,"reduceCount":1},
+                        {"name":"Assign","type":2,"reduceCount":3},
+                        {"name":"Expr","type":2,"reduceCount":1},
+                        {"name":"$end","reduceCount":1}],
+            parser;
         
         function defineGrammar() {
             var api = global.main;
@@ -18,15 +44,16 @@ describe('Declares LALR grammar using ' +
                             
                             "Basic",  [
                                         /Buang/,
+                                        /Chaching/,
                                         [/\(/, "Expr", /\)/]
                                     ],
-
+                        
                             "Operand",  [
                                         "Basic",
                                         ["Operand", /\./, "Basic"],
                                         ["Operand", /\[/, "Expr", /\]/]
                                     ],
-
+                        
                             "Assign",   [
                                         ["Operand", /\=/, "Assign"],
                                         "Operand"
@@ -44,20 +71,31 @@ describe('Declares LALR grammar using ' +
 
         it('2. Should be able to parse string subject.',
             function () {
-                var iterator, lexeme;
+                var list = output,
+                    current = -1;
+                var iterator, lexeme, item;
 
                 expect(defineGrammar).not.toThrow();
 
                 iterator = parser.iterator();
-                iterator.set('Buang = Buang.Buang');
+                iterator.set('Buang = (Chaching = Buang.Buang)');
                 lexeme = iterator.next();
 
                 for (; lexeme; lexeme = iterator.next()) {
-                    console.log(lexeme.name,
-                                lexeme.rule,
-                                lexeme.value,
-                                lexeme.reduceCount,
-                                lexeme);
+                    item = {
+                        name: lexeme.name,
+                        type: lexeme.type,
+                        reduceCount: lexeme.reduceCount
+                    };
+
+                    expect(item).toEqual(list[++current]);
+
+
+                    // console.log(lexeme.name,
+                    //             lexeme.rule,
+                    //             lexeme.value,
+                    //             lexeme.reduceCount,
+                    //             lexeme);
                 }
 
             });

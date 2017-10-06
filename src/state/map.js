@@ -15,6 +15,7 @@ function StateMap() {
 
 StateMap.prototype = {
     stateGen: 0,
+    rawStates: null,
     
     constructor: StateMap,
     
@@ -61,11 +62,22 @@ StateMap.prototype = {
         this.ends = {};
         this.exclude = {};
         this.finalized = false;
+        this.rawStates = [];
     },
 
     finalize: function() {
-        if (!this.finalized) {
+        var list = this.rawStates;
+        var c, l;
+
+        if (!this.finalized && list) {
             this.finalized = true;
+
+            for (c = -1, l = list.length; l--;) {
+                list[++c].finalize();
+            }
+
+            // remove raw states
+            list.length = 0;
         }
     },
     

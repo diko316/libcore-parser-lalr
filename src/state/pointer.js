@@ -12,8 +12,7 @@ function Pointer(lexeme, state) {
 
 Pointer.prototype = {
     constructor: Pointer,
-    before: null,
-    after: null,
+    next: null,
     item: null,
     to: null
 
