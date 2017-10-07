@@ -122,16 +122,27 @@ var parser = Parser.define("Expr",
                 [/\(/, "Expr", /\)/]
             ],
 
+
     "Operand",  [
                 "Basic",
                 ["Operand", /\./, "Basic"],
                 ["Operand", /\[/, "Expr", /\]/]
             ],
 
+    "Multiple", [
+                "Operand",
+                ["Multiple", /\+/, "Operand"]
+            ],
+
+    "Additive", [
+                "Multiple",
+                ["Additive", /\+/, "Multiple"]
+            ],
+
     "Assign",   [
-                ["Operand", /\=/, "Assign"],
-                "Operand"
-            ]
+                ["Additive", /\=/, "Assign"],
+                "Additive"
+            ],
 ],
 [
     /[ \r\n\t]+/
@@ -151,13 +162,15 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
         type: lexeme.type,
         reduceCount: lexeme.reduceCount
     };
-    // console.log(lexeme.name,
-    //             lexeme.value,
-    //             lexeme.reduceCount);
+    console.log(lexeme.name,
+                lexeme.value,
+                lexeme.reduceCount);
+    //console.log(lexeme);
 
 }
 
-console.log(JSON.stringify(output));
+//console.log(JSON.stringify(output));
 
 
-console.log(iterator);
+console.log(parser);
+//console.log(parser.toJSON());

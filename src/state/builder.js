@@ -19,10 +19,13 @@ function define(name, rule, grammar, tokenizer) {
         lexIndex = grammar.lexIndex,
         ruleNames = grammar.ruleNames,
         ruleNameRe = RULE_NAME_RE,
+        map = grammar.map,
         isString = string,
         isRegex = regex;
     var l, item, lexemes, token, tokenId, created,
         prefix, suffix, from, to, current, lexemeId;
+
+    
     
     if (isString(rule) || isRegex(rule)) {
         rule = [rule];
@@ -40,7 +43,7 @@ function define(name, rule, grammar, tokenizer) {
         
         if (isRegex(item)) {
             token = item.source;
-            tokenId = '/' + item.source + '/';
+            tokenId = map.generateSymbol('/' + item.source + '/');
             
             // register token
             if (!(tokenId in terminal)) {
@@ -56,6 +59,9 @@ function define(name, rule, grammar, tokenizer) {
         else if (!ruleNameRe.test(item)) {
             throw new Error("Invalid grammar rule name format: " + item);
         }
+        else {
+            item = map.generateSymbol(item);
+        }
         
         lexemes[l] = item;
         lexemeId = 'r' + (++grammar.rgenId);
@@ -68,6 +74,10 @@ function define(name, rule, grammar, tokenizer) {
         from = created;
 
     }
+
+    // generate name symbol
+    //name = map.generateSymbol(name);
+
     
     suffix = ' -> ' + lexemes.join(',');
     prefix = name + ':';
@@ -105,15 +115,21 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         isRegex = regex,
         defineRule = define,
         ruleNameRe = RULE_NAME_RE,
-        ruleNames = [];
+        ruleNames = [],
+        grammarRoot = "$" + root;
     var c, l, dc, dl, name, definition,
         rules, grammar, groups, group, index, terminal;
+
+    stateMap.reset();
+    
+    stateMap.root = stateMap.generateSymbol(grammarRoot);
         
     name = null;
     rules = {};
     grammar = {
-        root: '$' + root,
+        root: grammarRoot,
         rgenId: 0,
+        map: stateMap,
         ruleNames: ruleNames = [],
         rules: rules,
         terminal: terminal = {},
@@ -125,9 +141,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     // augment root
     definitions.splice(definitions.length,
                        0,
-                       "$end", [
-                            [ root, "$" ]
-                        ]);
+                       stateMap.lookupSymbol(stateMap.augmentedRoot),
+                        [[ root,
+                            stateMap.lookupSymbol(stateMap.endSymbol)]]);
 
     for (c = -1, l = definitions.length; l--;) {
         
@@ -138,7 +154,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             if (!ruleNameRe.test(definition)) {
                 throw new Error("Invalid grammar rule name " + definition);
             }
-            name = definition;
+            name = stateMap.generateSymbol(definition);
         
         }
         else if (isArray(definition)) {
@@ -157,7 +173,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
                                    grammar,
                                    tokenizer);
                 // register group
-                groups[group[1]] = name + (dc + 1);
+                groups[group[1]] = name + ':' + (dc + 1);
             }
 
         }
@@ -178,7 +194,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
                 throw new Error("Invalid exclude token parameter.");
             }
             
-            name = '/' + definition.source + '/';
+            name = stateMap.generateSymbol('/' + definition.source + '/');
             if (!(name in terminal)) {
                 tokenizer.define([ name, definition ]);
                 terminal[name] = name;
@@ -191,8 +207,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         }
         
     }
+
     
-    if (!contains(rules, root)) {
+    if (!contains(rules, stateMap.generateSymbol(root))) {
         throw new Error("Invalid root grammar rule parameter.");
     }
     

@@ -1,7 +1,7 @@
 'use strict';
 
 
-describe('Declares LALR grammar using ' +
+describe('Declares LL grammar using ' +
     'define(root:String, definitions:Array [, exclusions:Array]) method',
     function () {
 
@@ -30,7 +30,7 @@ describe('Declares LALR grammar using ' +
                         {"name":"Assign","type":2,"reduceCount":1},
                         {"name":"Assign","type":2,"reduceCount":3},
                         {"name":"Expr","type":2,"reduceCount":1},
-                        {"name":"$end","reduceCount":1}],
+                        {"name":"$end","type":4,"reduceCount":1}],
             parser;
         
         function defineGrammar() {
@@ -91,6 +91,8 @@ describe('Declares LALR grammar using ' +
                     }
 
                     verify = list[++current];
+
+                    console.log("verify ", item);
 
                     expect(item).toEqual(verify);
                 }

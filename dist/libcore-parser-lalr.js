@@ -7,7 +7,36 @@
 Tokenizer = Tokenizer && Tokenizer.hasOwnProperty('default') ? Tokenizer['default'] : Tokenizer;
 
 function StateMap() {
-    this.reset();
+    var start = "$start",
+        end = "$end",
+        tokenEnd = "$",
+        states = {};
+
+    this.stateGen =
+        this.symbolGen =
+        this.reduceGen = 0;
+
+    states[start] = {};
+    this.root = end;
+    this.lookup = {};
+    this.symbol = {};
+    this.start = start;
+    this.states = states;
+    this.anchors = {};
+    this.ends = {};
+    this.exclude = {};
+    this.finalized = false;
+    this.rawStates = [];
+
+    this.reduceLookup = {};
+    this.reducers = {};
+
+    this.augmentedRoot = this.generateSymbol(end);
+    this.endSymbol = this.generateSymbol(tokenEnd);
+    this.endToken = tokenEnd;
+
+    
+
 }
 
 
@@ -22,6 +51,65 @@ StateMap.prototype = {
         this.states[id] = {};
         return id;
     },
+
+    generateSymbol: function (name) {
+        var lookup = this.lookup,
+            symbols = this.symbol,
+            access = ':' + name;
+        var id;
+        
+        if (access in lookup) {
+            return lookup[access];
+        }
+    
+        // create symbol
+        id = 's>' + (++this.symbolGen);
+    
+        lookup[access] = id;
+        symbols[id] = name;
+    
+        return id;
+    
+    },
+
+    generateReduceId: function (name, params, ruleIndex) {
+        var lookup = this.reduceLookup,
+            all = this.reducers,
+            access = name + ':' + params + ':' + ruleIndex;
+        var id;
+
+        if (access in lookup) {
+            return lookup[access];
+        }
+
+        id = 'r>' + (++this.reduceGen);
+
+        lookup[access] = id;
+        all[id] = [name, params, ruleIndex];
+
+        return id;
+    },
+
+    lookupReducer: function (id) {
+        var all = this.reducers;
+        
+        if (id in all) {
+            return all[id];
+        }
+
+        return false;
+    },
+
+    lookupSymbol: function lookupSymbol(name) {
+        var symbols = this.symbol;
+
+        if (name in symbols) {
+            return symbols[name];
+        }
+
+        return false;
+
+    },
     
     setAnchorState: function (state) {
         var anchors = this.anchors;
@@ -32,35 +120,26 @@ StateMap.prototype = {
     },
     
     setReduceState: function (state, name, params, ruleIndex) {
-        var ends = this.ends;
+        var ends = this.ends,
+            id = this.generateReduceId(name, params, ruleIndex),
+            all = this.reducers;
         var current;
         
         if (state in ends) {
-            current = ends[state];
+            current = all[ends[state]];
             if (current[0] !== name || current[1] !== params) {
                 throw new Error("Reduce conflict found " +
                                 current[0] + ' ! <- ' + name);
             }
         }
         else {
-            ends[state] = [name, params, ruleIndex];
+            ends[state] = id;
         }
         
     },
     
     reset: function () {
-        var start = '$start',
-            states = {};
-        
-        states[start] = {};
-        this.root = '$end';
-        this.start = start;
-        this.states = states;
-        this.anchors = {};
-        this.ends = {};
-        this.exclude = {};
-        this.finalized = false;
-        this.rawStates = [];
+        this.constructor();
     },
 
     finalize: function() {
@@ -76,6 +155,9 @@ StateMap.prototype = {
 
             // remove raw states
             list.length = 0;
+
+            // remove lookup
+            delete this.lookup;
         }
         
         return this.finalized;
@@ -95,7 +177,8 @@ StateMap.prototype = {
     importStates: function (definition) {
         var isObject = libcore.object,
             isString = libcore.string;
-        var start, states, anchors, ends, root, exclude;
+        var start, states, anchors, ends, root, exclude, symbol, reducers,
+            list, c, l;
         
         if (!isObject(definition)) {
             throw new Error("Invalid Object definition parameter.");
@@ -129,9 +212,24 @@ StateMap.prototype = {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
 
-        exclude = definition.exclude;
-        if (!isObject(exclude)) {
+        reducers = definition.reducers;
+        if (!isObject(reducers)) {
+            throw new Error('Invalid production "reducers" in definition.');
+        }
+
+        symbol = definition.symbol;
+        if (!isObject(symbol)) {
+            throw new Error('Invalid "symbol" map in definition parameter.');
+        }
+
+        list = definition.exclude;
+        if (!libcore.array(list)) {
             throw new Error('Invalid "exclude" token in definition parameter.');
+        }
+
+        exclude = {};
+        for (c = -1, l = list.length; l--;) {
+            exclude[list[++c]] = true;
         }
         
         this.root = root;
@@ -139,19 +237,37 @@ StateMap.prototype = {
         this.states = states;
         this.anchors = anchors;
         this.ends = ends;
+        this.reducers = reducers;
         this.exclude = exclude;
+        this.symbol = symbol;
         
         return true;
     },
     
     toObject: function () {
+        var has = libcore.contains,
+            exclude = this.exclude,
+            list = [],
+            len = 0;
+        var name;
+
+        // export exclude
+        for (name in exclude) {
+            if (has(exclude, name)) {
+                list[len++] = name;
+            }
+        }
+
+
         return {
                 root: this.root,
                 start: this.start,
                 states: this.states,
                 anchors: this.anchors,
+                reducers: this.reducers,
                 ends: this.ends,
-                exclude: this.exclude
+                exclude: list,
+                symbol: this.symbol
             };
     },
     
@@ -207,6 +323,12 @@ function Item(id, map) {
     this.base = this;
     this.watched = [];
     this.reduceList = [];
+    this.recursion = {};
+
+    this.references = [];
+
+    // create default
+    this.lexeme = map.augmentedRoot;
 
     // register as raw state
     list[list.length] = this;
@@ -223,8 +345,8 @@ Item.prototype = {
     watched: null,
     contextPointer: null,
     reduceList: null,
-    lexeme: "$end",
-    recursion: {},
+    lexeme: null,
+    recursion: null,
     finalized: false,
 
     getRecursionItem: function (ruleId) {
@@ -425,8 +547,6 @@ function define$2(grammar, map, exclude) {
     var anchor, production, rule, lexeme, ruleId, params,
         queue, recursion, pendingRecursion, item;
 
-    map.reset();
-    map.root = grammar.root;
 
     if (exclude) {
         map.setExcludes(exclude);
@@ -459,6 +579,8 @@ function define$2(grammar, map, exclude) {
                 defineState = STATE_RULE_END;
                 break;
             }
+
+            
             
             ruleId = rule[0];
             lexeme = rule[1];
@@ -537,7 +659,6 @@ function define$2(grammar, map, exclude) {
 
     }
     
-    
     // build state map
     return true;
     
@@ -552,10 +673,13 @@ function define$1(name, rule, grammar, tokenizer) {
         lexIndex = grammar.lexIndex,
         ruleNames = grammar.ruleNames,
         ruleNameRe = RULE_NAME_RE,
+        map = grammar.map,
         isString = libcore.string,
         isRegex = libcore.regex;
     var l, item, lexemes, token, tokenId, created,
         prefix, suffix, from, to, current, lexemeId;
+
+    
     
     if (isString(rule) || isRegex(rule)) {
         rule = [rule];
@@ -573,7 +697,7 @@ function define$1(name, rule, grammar, tokenizer) {
         
         if (isRegex(item)) {
             token = item.source;
-            tokenId = '/' + item.source + '/';
+            tokenId = map.generateSymbol('/' + item.source + '/');
             
             // register token
             if (!(tokenId in terminal)) {
@@ -589,6 +713,9 @@ function define$1(name, rule, grammar, tokenizer) {
         else if (!ruleNameRe.test(item)) {
             throw new Error("Invalid grammar rule name format: " + item);
         }
+        else {
+            item = map.generateSymbol(item);
+        }
         
         lexemes[l] = item;
         lexemeId = 'r' + (++grammar.rgenId);
@@ -601,6 +728,10 @@ function define$1(name, rule, grammar, tokenizer) {
         from = created;
 
     }
+
+    // generate name symbol
+    //name = map.generateSymbol(name);
+
     
     suffix = ' -> ' + lexemes.join(',');
     prefix = name + ':';
@@ -638,15 +769,21 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         isRegex = libcore.regex,
         defineRule = define$1,
         ruleNameRe = RULE_NAME_RE,
-        ruleNames = [];
+        ruleNames = [],
+        grammarRoot = "$" + root;
     var c, l, dc, dl, name, definition,
         rules, grammar, groups, group, index, terminal;
+
+    stateMap.reset();
+    
+    stateMap.root = stateMap.generateSymbol(grammarRoot);
         
     name = null;
     rules = {};
     grammar = {
-        root: '$' + root,
+        root: grammarRoot,
         rgenId: 0,
+        map: stateMap,
         ruleNames: ruleNames = [],
         rules: rules,
         terminal: terminal = {},
@@ -658,9 +795,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     // augment root
     definitions.splice(definitions.length,
                        0,
-                       "$end", [
-                            [ root, "$" ]
-                        ]);
+                       stateMap.lookupSymbol(stateMap.augmentedRoot),
+                        [[ root,
+                            stateMap.lookupSymbol(stateMap.endSymbol)]]);
 
     for (c = -1, l = definitions.length; l--;) {
         
@@ -671,7 +808,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             if (!ruleNameRe.test(definition)) {
                 throw new Error("Invalid grammar rule name " + definition);
             }
-            name = definition;
+            name = stateMap.generateSymbol(definition);
         
         }
         else if (isArray(definition)) {
@@ -690,7 +827,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
                                    grammar,
                                    tokenizer);
                 // register group
-                groups[group[1]] = name + (dc + 1);
+                groups[group[1]] = name + ':' + (dc + 1);
             }
 
         }
@@ -711,7 +848,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
                 throw new Error("Invalid exclude token parameter.");
             }
             
-            name = '/' + definition.source + '/';
+            name = stateMap.generateSymbol('/' + definition.source + '/');
             if (!(name in terminal)) {
                 tokenizer.define([ name, definition ]);
                 terminal[name] = name;
@@ -724,8 +861,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         }
         
     }
+
     
-    if (!libcore.contains(rules, root)) {
+    if (!libcore.contains(rules, stateMap.generateSymbol(root))) {
         throw new Error("Invalid root grammar rule parameter.");
     }
     
@@ -737,7 +875,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
 var TYPE = {
         terminal: 1,
         nonterminal: 2,
-        compound: 3
+        compound: 3,
+        end: 4
     };
     
     
@@ -837,10 +976,10 @@ BaseIterator.prototype = {
             states = map.states,
             state = me.pstate,
             token = parser.tokenizer.tokenize(from,
-                                              me.subject);
+                                              me.subject),
+            endToken = map.endToken;
             
-        var name, to, ref, lexeme;
-        
+        var name, to, ref, lexeme, literal;
         
         if (token) {
             name = token[0];
@@ -853,7 +992,18 @@ BaseIterator.prototype = {
             }
             
             lexeme = new Lexeme('terminal');
-            lexeme.name = name;
+
+            // end token is not symbolized!
+            literal = name;
+            if (name === endToken) {
+                name = map.endSymbol;
+            }
+            else {
+                literal = map.symbol[name];
+            }
+            
+            lexeme.name = literal;
+            lexeme.symbol = name;
             lexeme.value = token[1];
             lexeme.from = from;
             lexeme.to = to;
@@ -883,9 +1033,10 @@ BaseIterator.prototype = {
     ':shift': function (lexeme) {
         var me = this,
             buffer = me.buffer,
-            states = me.parser.map.states,
+            map = me.parser.map,
+            states = map.states,
             state = me.pstate,
-            name = lexeme.name;
+            name = lexeme.symbol;
         
         buffer[buffer.length] = [state, lexeme];
         
@@ -894,8 +1045,9 @@ BaseIterator.prototype = {
         me.params = null;
         
         // do not return "$" token
-        me.returns = name !== "$";
+        me.returns = name !== map.endSymbol;
         me.params = me.nextTokenIndex;
+        
         return 1;
 
     },
@@ -907,8 +1059,9 @@ BaseIterator.prototype = {
             bl = buffer.length,
             ends = map.ends,
             states = map.states,
+            lookup = map.symbol,
             state = me.pstate,
-            reduce = ends[state],
+            reduce = map.lookupReducer(ends[state]),
             name = reduce[0],
             params = reduce[1],
             l = params,
@@ -918,7 +1071,8 @@ BaseIterator.prototype = {
             
         var litem, item, from, to, ref, last;
         
-        created.name = name;
+        created.name = lookup[name];
+        created.symbol = name;
         created.rule = reduce[2];
         last = null;
         
@@ -958,7 +1112,7 @@ BaseIterator.prototype = {
         created.reduceCount = params;
         
         // only if it ended
-        if (name === '$end') {
+        if (name === map.augmentedRoot) {
             
             // end
             if (bl === 0) {
@@ -988,7 +1142,7 @@ BaseIterator.prototype = {
         state = states[state][name];
         ref = states[state];
         
-        name = lexeme.name;
+        name = lexeme.symbol;
         me.pstate = state;
         
         // shift

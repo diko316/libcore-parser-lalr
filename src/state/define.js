@@ -15,8 +15,6 @@ function define(grammar, map, exclude) {
     var anchor, production, rule, lexeme, ruleId, params,
         queue, recursion, pendingRecursion, item;
 
-    map.reset();
-    map.root = grammar.root;
 
     if (exclude) {
         map.setExcludes(exclude);
@@ -49,6 +47,8 @@ function define(grammar, map, exclude) {
                 defineState = STATE_RULE_END;
                 break;
             }
+
+            
             
             ruleId = rule[0];
             lexeme = rule[1];
@@ -126,7 +126,6 @@ function define(grammar, map, exclude) {
         }
 
     }
-    
     
     // build state map
     return true;

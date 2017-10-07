@@ -5,7 +5,8 @@ import { contains } from "libcore";
 var TYPE = {
         terminal: 1,
         nonterminal: 2,
-        compound: 3
+        compound: 3,
+        end: 4
     };
     
     

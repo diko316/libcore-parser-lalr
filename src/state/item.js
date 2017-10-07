@@ -12,6 +12,12 @@ function Item(id, map) {
     this.base = this;
     this.watched = [];
     this.reduceList = [];
+    this.recursion = {};
+
+    this.references = [];
+
+    // create default
+    this.lexeme = map.augmentedRoot;
 
     // register as raw state
     list[list.length] = this;
@@ -28,8 +34,8 @@ Item.prototype = {
     watched: null,
     contextPointer: null,
     reduceList: null,
-    lexeme: "$end",
-    recursion: {},
+    lexeme: null,
+    recursion: null,
     finalized: false,
 
     getRecursionItem: function (ruleId) {

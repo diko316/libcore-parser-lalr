@@ -76,10 +76,10 @@ BaseIterator.prototype = {
             states = map.states,
             state = me.pstate,
             token = parser.tokenizer.tokenize(from,
-                                              me.subject);
+                                              me.subject),
+            endToken = map.endToken;
             
-        var name, to, ref, lexeme;
-        
+        var name, to, ref, lexeme, literal;
         
         if (token) {
             name = token[0];
@@ -92,7 +92,18 @@ BaseIterator.prototype = {
             }
             
             lexeme = new Lexeme('terminal');
-            lexeme.name = name;
+
+            // end token is not symbolized!
+            literal = name;
+            if (name === endToken) {
+                name = map.endSymbol;
+            }
+            else {
+                literal = map.symbol[name];
+            }
+            
+            lexeme.name = literal;
+            lexeme.symbol = name;
             lexeme.value = token[1];
             lexeme.from = from;
             lexeme.to = to;
@@ -122,9 +133,10 @@ BaseIterator.prototype = {
     ':shift': function (lexeme) {
         var me = this,
             buffer = me.buffer,
-            states = me.parser.map.states,
+            map = me.parser.map,
+            states = map.states,
             state = me.pstate,
-            name = lexeme.name;
+            name = lexeme.symbol;
         
         buffer[buffer.length] = [state, lexeme];
         
@@ -133,8 +145,9 @@ BaseIterator.prototype = {
         me.params = null;
         
         // do not return "$" token
-        me.returns = name !== "$";
+        me.returns = name !== map.endSymbol;
         me.params = me.nextTokenIndex;
+        
         return 1;
 
     },
@@ -146,8 +159,9 @@ BaseIterator.prototype = {
             bl = buffer.length,
             ends = map.ends,
             states = map.states,
+            lookup = map.symbol,
             state = me.pstate,
-            reduce = ends[state],
+            reduce = map.lookupReducer(ends[state]),
             name = reduce[0],
             params = reduce[1],
             l = params,
@@ -157,7 +171,8 @@ BaseIterator.prototype = {
             
         var litem, item, from, to, ref, last;
         
-        created.name = name;
+        created.name = lookup[name];
+        created.symbol = name;
         created.rule = reduce[2];
         last = null;
         
@@ -197,7 +212,7 @@ BaseIterator.prototype = {
         created.reduceCount = params;
         
         // only if it ended
-        if (name === '$end') {
+        if (name === map.augmentedRoot) {
             
             // end
             if (bl === 0) {
@@ -227,7 +242,7 @@ BaseIterator.prototype = {
         state = states[state][name];
         ref = states[state];
         
-        name = lexeme.name;
+        name = lexeme.symbol;
         me.pstate = state;
         
         // shift
