@@ -374,9 +374,9 @@ Item.prototype = {
     },
 
     createRecursion: function (ruleId, lexeme) {
-        var duplicate = clone,
-            item = duplicate(this),
-            recursion = duplicate(this.recursion);
+        var item = clone(this),
+            // common recursion
+            recursion = this.recursion;
 
         item.parent = this;
 
@@ -574,8 +574,6 @@ function define$2(grammar, map, exclude) {
                 defineState = STATE_RULE_END;
                 break;
             }
-
-            
             
             ruleId = rule[0];
             lexeme = rule[1];

@@ -47,8 +47,6 @@ function define(grammar, map, exclude) {
                 defineState = STATE_RULE_END;
                 break;
             }
-
-            
             
             ruleId = rule[0];
             lexeme = rule[1];

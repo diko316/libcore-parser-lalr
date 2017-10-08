@@ -173,4 +173,4 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 
 
 console.log(parser);
-//console.log(parser.toJSON());
+console.log(parser.toJSON());
