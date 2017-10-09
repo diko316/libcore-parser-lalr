@@ -30,8 +30,6 @@ function StateMap() {
     this.endSymbol = this.generateSymbol(tokenEnd);
     this.endToken = tokenEnd;
 
-    
-
 }
 
 
@@ -529,7 +527,7 @@ Item.prototype = {
 
 };
 
-function define$2(grammar, map, exclude) {
+function define$1(grammar, map, exclude) {
     var STATE_END = 0,
         STATE_START = 1,
         STATE_RULE_ITERATE = 2,
@@ -659,20 +657,87 @@ function define$2(grammar, map, exclude) {
 
 var RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
 
-function define$1(name, rule, grammar, tokenizer) {
+
+function registerToken(grammar, definition, name) {
+    var terminal = grammar.terminal,
+        alias = grammar.tokenAlias,
+        tokens = grammar.tokens,
+        map = grammar.map,
+        pendingTerminals = grammar.pendingTerminals;
+    var reference, len;
+
+    reference = map.generateSymbol('/' + definition.source + '/'); 
+    if (!name) {
+        name = reference;
+    }
+    
+    // register alias as terminal
+    if (!(reference in alias)) {
+        alias[reference] = name;
+        len = tokens.length;
+        tokens[len++] = name;
+        tokens[len++] = definition;
+
+    }
+    else if (alias[reference] !== name) {
+        throw new Error("Token definition " + definition.source +
+                        " is a duplicate of " +
+                        map.lookupSymbol(alias[reference]));
+    }
+    
+    if (!(name in terminal)) {
+        terminal[name] = reference;
+        
+        if (pendingTerminals.indexOf(name) === -1) {
+            pendingTerminals[pendingTerminals.length] = name;
+        }
+    }
+
+    return [name, reference];
+}
+
+function defineTerminal(name, rule, grammar) {
+    var map = grammar.map,
+        setToken = registerToken,
+        isRegex = regex,
+        errorMessage = "Invalid terminal definitions in " +
+                        map.lookupSymbol(name);
+
+    var c, l, item;
+
+    if (isRegex(rule)) {
+        rule = [rule];
+    }
+
+    if (!array(rule)) {
+        throw new Error(errorMessage);
+    }
+
+    for (c = -1, l = rule.length; l--;) {
+        item = rule[++c];
+
+        if (isRegex(item)) {
+            setToken(grammar, item, name);
+        }
+        else {
+            throw new Error(errorMessage);
+        }
+    }
+}
+
+function defineRule(name, rule, grammar) {
     var rules = grammar.rules,
         ruleIndex = grammar.ruleIndex,
-        terminal = grammar.terminal,
         lexIndex = grammar.lexIndex,
         ruleNames = grammar.ruleNames,
         ruleNameRe = RULE_NAME_RE,
         map = grammar.map,
+        pendingTerminals = grammar.pendingTerminals,
+        registerTerminal = registerToken,
         isString = string,
         isRegex = regex;
-    var l, item, lexemes, token, tokenId, created,
+    var l, item, lexemes, token, created,
         prefix, suffix, from, to, current, lexemeId;
-
-    
     
     if (isString(rule) || isRegex(rule)) {
         rule = [rule];
@@ -687,24 +752,24 @@ function define$1(name, rule, grammar, tokenizer) {
     
     for (l = rule.length; l--;) {
         item = rule[l];
-        
+
         if (isRegex(item)) {
-            token = item.source;
-            tokenId = map.generateSymbol('/' + item.source + '/');
-            
-            // register token
-            if (!(tokenId in terminal)) {
-                tokenizer.define([ tokenId, item ]);
-                terminal[tokenId] = tokenId;
-            }
-            
-            item = tokenId;
+            token = registerTerminal(grammar, item);
+            item = token[0];
+
         }
         else if (!isString(item)) {
             throw new Error("Invalid token in grammar rule " + item);
         }
+        // terminal
         else if (!ruleNameRe.test(item)) {
-            throw new Error("Invalid grammar rule name format: " + item);
+
+            item = map.generateSymbol(item);
+
+            if (pendingTerminals.indexOf(item) === -1) {
+                pendingTerminals[pendingTerminals.length] = item;
+            }
+
         }
         else {
             item = map.generateSymbol(item);
@@ -721,20 +786,16 @@ function define$1(name, rule, grammar, tokenizer) {
         from = created;
 
     }
-
-    // generate name symbol
-    //name = map.generateSymbol(name);
-
     
     suffix = ' -> ' + lexemes.join(',');
     prefix = name + ':';
-    tokenId = name + suffix;
+    token = name + suffix;
     
-    if (tokenId in ruleIndex) {
+    if (token in ruleIndex) {
         throw new Error("Grammar rule is already defined " + name + suffix);
     }
     else {
-        ruleIndex[tokenId] = true;
+        ruleIndex[token] = true;
     }
     
     if (!(name in rules)) {
@@ -760,19 +821,24 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     var isString = string,
         isArray = array,
         isRegex = regex,
-        defineRule = define$1,
+        registerRule = defineRule,
+        registerTerminal = defineTerminal,
+        defineToken = registerToken,
+        rules = {},
         ruleNameRe = RULE_NAME_RE,
         ruleNames = [],
-        grammarRoot = "$" + root;
-    var c, l, dc, dl, name, definition,
-        rules, grammar, groups, group, index, terminal;
+        grammarRoot = "$" + root,
+        name = null,
+        tokens = [],
+        pendingTerminals = [],
+        isTerminalName = false;
+    var c, l, dc, dl, definition, pl,
+        grammar, groups, group, index, terminal;
 
     stateMap.reset();
     
     stateMap.root = stateMap.generateSymbol(grammarRoot);
-        
-    name = null;
-    rules = {};
+
     grammar = {
         root: grammarRoot,
         rgenId: 0,
@@ -780,6 +846,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         ruleNames: ruleNames = [],
         rules: rules,
         terminal: terminal = {},
+        tokens: tokens,
+        tokenAlias: {},
+        pendingTerminals: pendingTerminals,
         lexIndex: index = {},
         ruleIndex: {},
         ruleGroup: groups = {}
@@ -797,10 +866,8 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         definition = definitions[++c];
         
         if (isString(definition)) {
-            
-            if (!ruleNameRe.test(definition)) {
-                throw new Error("Invalid grammar rule name " + definition);
-            }
+
+            isTerminalName = !ruleNameRe.test(definition);
             name = stateMap.generateSymbol(definition);
         
         }
@@ -815,12 +882,20 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             dl = definition.length;
             
             for (; dl--;) {
-                group = defineRule(name,
-                                   definition[++dc],
-                                   grammar,
-                                   tokenizer);
-                // register group
-                groups[group[1]] = name + ':' + (dc + 1);
+
+                if (isTerminalName) {
+                    registerTerminal(name,
+                                    definition[++dc],
+                                    grammar);
+                }
+                else {
+                    group = registerRule(name,
+                                        definition[++dc],
+                                        grammar,
+                                        tokenizer);
+                    // register group
+                    groups[group[1]] = name + ':' + (dc + 1);
+                }
             }
 
         }
@@ -833,26 +908,48 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
     // add excludes
     if (exclude) {
         exclude = exclude.slice(0);
+        pl = pendingTerminals.length;
         
         for (l = exclude.length; l--;) {
             definition = exclude[l];
-            
-            if (!isRegex(definition)) {
-                throw new Error("Invalid exclude token parameter.");
+
+            if (isString(definition)) {
+                name = stateMap.generateSymbol(definition);
+
+                if (pendingTerminals.indexOf(name) === -1) {
+                    pendingTerminals[pl++] = name;
+                }
+                
             }
-            
-            name = stateMap.generateSymbol('/' + definition.source + '/');
-            if (!(name in terminal)) {
-                tokenizer.define([ name, definition ]);
-                terminal[name] = name;
-                exclude[l] = name;
+            else if (isRegex(definition)) {
+                definition = defineToken(grammar, definition, null, true);
+                name = definition[0];
             }
             else {
-                exclude.splice(l, 1);
+                throw new Error("Invalid exclude token parameter.");
             }
-            
+
+            // rename!
+            exclude[l] = name;
         }
         
+    }
+
+    // resolve pending terminals
+    pl = pendingTerminals.length;
+    for (; pl--;) {
+        name = pendingTerminals[pl];
+
+        if (!(name in terminal)) {
+            throw new Error("Terminal is not defined ",
+                            stateMap.lookupSymbol(name));
+        }
+    }
+    pendingTerminals.length = 0;
+
+    // register
+    if (tokens.length) {
+        tokenizer.define(tokens);
     }
 
     
@@ -860,7 +957,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         throw new Error("Invalid root grammar rule parameter.");
     }
     
-    return define$2(grammar, stateMap, exclude) &&
+    return define$1(grammar, stateMap, exclude) &&
             stateMap.finalize();
 
 }

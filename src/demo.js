@@ -110,26 +110,126 @@ import Parser from "./index.js";
 //                        [
 //                            /[ \t]+/ // ignore space
 //                        ]);
+// var parser = Parser.define("Expr",
+// [
+//     "Expr", [
+//                 "Assign"
+//             ],
+
+//     "buang",[
+//                 /Buang/,
+//                 /Chaching/
+//             ],
+    
+//     "Basic",  [
+//                 "buang",
+//                 /[0-9]+/,
+//                 [/\(/, "Expr", /\)/]
+//             ],
+
+
+//     "Operand",  [
+//                 "Basic",
+//                 ["Basic", "Arguments"],
+//                 ["Operand", /\./, "Basic"],
+//                 ["Operand", /\[/, "Expr", /\]/]
+                
+//             ],
+
+//     "Arguments",[
+//                 [/\(/, /\)/],
+//                 [/\(/, "ArgumentList", /\)/]
+//             ],
+
+//     "ArgumentList",[
+//                 "Expr",
+//                 ["ArgumentList", /\,/, "Expr"]
+//             ],
+
+//     "Multiple", [
+//                 "Operand",
+//                 ["Multiple", /\*/, "Operand"]
+//             ],
+
+//     "Additive", [
+//                 "Multiple",
+//                 ["Additive", /\+/, "Multiple"]
+//             ],
+
+//     "Assign",   [
+//                 ["Additive", /\=/, "Assign"],
+//                 "Additive"
+//             ],
+// ],
+// [
+//     /[ \r\n\t]+/
+// ]);
+// var iterator = parser.iterator(),
+//     output = [],
+//     ol = 0;
+// var lexeme;
+
+
+
+// //iterator.set('Buang = (Chaching = Buang.Buang)');
+
+// iterator.set('Chaching = (Buang)');
+
+// //iterator.set('Buang = 2 * Buang(4)');
+// //iterator.set('Buang(4)');
+
+// for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
+//     output[ol++] = {
+//         name: lexeme.name,
+//         type: lexeme.type,
+//         reduceCount: lexeme.reduceCount
+//     };
+//     console.log(lexeme.name,
+//                 lexeme.value,
+//                 lexeme.reduceCount);
+//     //console.log(lexeme);
+
+// }
+
+// //console.log(JSON.stringify(output));
+
+
+// console.log(parser);
+// console.log(parser.toJSON());
+
+
+
+
 var parser = Parser.define("Expr",
 [
     "Expr", [
                 "Assign"
             ],
-    
-    "Basic",  [
+
+    "buang", [
                 /Buang/,
-                /Chaching/,
-                /[0-9]+/,
-                [/\(/, "Expr", /\)/]
+                /Chaching/
             ],
 
+    "number",[
+                /[0-9]+/
+            ],
+
+    "+",    [/\+/],
+
+    "*",    [/\*/],
+    
+    "Basic",  [
+                "buang",
+                "number",
+                [/\(/, "Expr", /\)/]
+            ],
 
     "Operand",  [
                 "Basic",
                 ["Basic", "Arguments"],
                 ["Operand", /\./, "Basic"],
                 ["Operand", /\[/, "Expr", /\]/]
-                
             ],
 
     "Arguments",[
@@ -144,16 +244,16 @@ var parser = Parser.define("Expr",
 
     "Multiple", [
                 "Operand",
-                ["Multiple", /\*/, "Operand"]
+                ["Multiple", '*', "Operand"]
             ],
 
     "Additive", [
                 "Multiple",
-                ["Additive", /\+/, "Multiple"]
+                ["Additive", '+', "Multiple"]
             ],
 
     "Assign",   [
-                ["Additive", /\=/, "Assign"],
+                ["buang", /\=/, "Assign"],
                 "Additive"
             ],
 ],
@@ -165,11 +265,12 @@ var iterator = parser.iterator(),
     ol = 0;
 var lexeme;
 
+//console.log(parser);
 
+iterator.set('Buang = (Chaching = Buang.Buang)');
 
-//iterator.set('Buang = (Chaching = Buang.Buang)');
-
-iterator.set('Buang = 2 * Buang(4)');
+//iterator.set('Buang = 2 * Buang(4)');
+//iterator.set('2 * Buang');
 //iterator.set('Buang(4)');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
@@ -178,9 +279,9 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
         type: lexeme.type,
         reduceCount: lexeme.reduceCount
     };
-    console.log(lexeme.name,
-                lexeme.value,
-                lexeme.reduceCount);
+    // console.log(lexeme.name,
+    //             lexeme.value,
+    //             lexeme.reduceCount);
     //console.log(lexeme);
 
 }
@@ -188,5 +289,5 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 //console.log(JSON.stringify(output));
 
 
-console.log(parser);
-console.log(parser.toJSON());
+
+//console.log(parser.toJSON());

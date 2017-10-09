@@ -38,8 +38,6 @@ function StateMap() {
     this.endSymbol = this.generateSymbol(tokenEnd);
     this.endToken = tokenEnd;
 
-    
-
 }
 
 
