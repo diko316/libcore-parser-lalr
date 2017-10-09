@@ -119,19 +119,32 @@ var parser = Parser.define("Expr",
     "Basic",  [
                 /Buang/,
                 /Chaching/,
+                /[0-9]+/,
                 [/\(/, "Expr", /\)/]
             ],
 
 
     "Operand",  [
                 "Basic",
+                ["Basic", "Arguments"],
                 ["Operand", /\./, "Basic"],
                 ["Operand", /\[/, "Expr", /\]/]
+                
+            ],
+
+    "Arguments",[
+                [/\(/, /\)/],
+                [/\(/, "ArgumentList", /\)/]
+            ],
+
+    "ArgumentList",[
+                "Expr",
+                ["ArgumentList", /\,/, "Expr"]
             ],
 
     "Multiple", [
                 "Operand",
-                ["Multiple", /\+/, "Operand"]
+                ["Multiple", /\*/, "Operand"]
             ],
 
     "Additive", [
@@ -154,7 +167,10 @@ var lexeme;
 
 
 
-iterator.set('Buang = (Chaching = Buang.Buang)');
+//iterator.set('Buang = (Chaching = Buang.Buang)');
+
+iterator.set('Buang = 2 * Buang(4)');
+//iterator.set('Buang(4)');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     output[ol++] = {
