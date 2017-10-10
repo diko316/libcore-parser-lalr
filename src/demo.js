@@ -282,7 +282,7 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     // console.log(lexeme.name,
     //             lexeme.value,
     //             lexeme.reduceCount);
-    //console.log(lexeme);
+    console.log(lexeme);
 
 }
 
@@ -290,4 +290,4 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 
 
 
-//console.log(parser.toJSON());
+console.log(parser);

@@ -832,8 +832,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         tokens = [],
         pendingTerminals = [],
         isTerminalName = false;
-    var c, l, dc, dl, definition, pl,
-        grammar, groups, group, index, terminal;
+    var c, l, dc, dl, definition, pl, original,
+        grammar, groups, group, index, terminal,
+        callback;
 
     stateMap.reset();
     
@@ -869,6 +870,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
 
             isTerminalName = !ruleNameRe.test(definition);
             name = stateMap.generateSymbol(definition);
+            original = definition;
         
         }
         else if (isArray(definition)) {
@@ -880,22 +882,20 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             
             dc = -1;
             dl = definition.length;
+
+            callback = isTerminalName ? registerTerminal : registerRule;
             
             for (; dl--;) {
 
-                if (isTerminalName) {
-                    registerTerminal(name,
-                                    definition[++dc],
-                                    grammar);
+                group = callback(name, definition[++dc], grammar);
+
+                // register group
+                if (!isTerminalName) {
+                    groups[group[1]] = stateMap.generateSymbol((dc + 1) +
+                                                                ':' +
+                                                                original);
                 }
-                else {
-                    group = registerRule(name,
-                                        definition[++dc],
-                                        grammar,
-                                        tokenizer);
-                    // register group
-                    groups[group[1]] = name + ':' + (dc + 1);
-                }
+
             }
 
         }
@@ -972,6 +972,7 @@ var TYPE = {
     
 
 function Lexeme(type) {
+    this.terminal = false;
     this.useType(type);
 }
 
@@ -990,11 +991,15 @@ Lexeme.prototype = {
     last: null,
     next: null,
     previous: null,
+    terminal: false,
     
     useType: function (type) {
         var types = TYPE;
-        this.type = contains(types, type) ?
-                        types[type] : types.token;
+        this.type = type = contains(types, type) ?
+                                types[type] : types.token;
+        if (type === TYPE.terminal) {
+            this.terminal = true;
+        }
     }
 };
 
@@ -1163,7 +1168,7 @@ BaseIterator.prototype = {
         
         created.name = lookup[name];
         created.symbol = name;
-        created.rule = reduce[2];
+        created.rule = lookup[reduce[2]];
         last = null;
         
         for (; l--;) {
@@ -1211,7 +1216,7 @@ BaseIterator.prototype = {
                 created.useType('end');
                 created.last = litem;
                 created.value = [litem.value];
-                created.rule = map.root;
+                created.rule = lookup[map.root];
                 created.reduceCount = 1;
                 
                 me.params = created;

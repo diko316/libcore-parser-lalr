@@ -173,7 +173,7 @@ BaseIterator.prototype = {
         
         created.name = lookup[name];
         created.symbol = name;
-        created.rule = reduce[2];
+        created.rule = lookup[reduce[2]];
         last = null;
         
         for (; l--;) {
@@ -221,7 +221,7 @@ BaseIterator.prototype = {
                 created.useType('end');
                 created.last = litem;
                 created.value = [litem.value];
-                created.rule = map.root;
+                created.rule = lookup[map.root];
                 created.reduceCount = 1;
                 
                 me.params = created;

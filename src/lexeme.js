@@ -12,6 +12,7 @@ var TYPE = {
     
 
 function Lexeme(type) {
+    this.terminal = false;
     this.useType(type);
 }
 
@@ -30,11 +31,15 @@ Lexeme.prototype = {
     last: null,
     next: null,
     previous: null,
+    terminal: false,
     
     useType: function (type) {
         var types = TYPE;
-        this.type = contains(types, type) ?
-                        types[type] : types.token;
+        this.type = type = contains(types, type) ?
+                                types[type] : types.token;
+        if (type === TYPE.terminal) {
+            this.terminal = true;
+        }
     }
 };
 

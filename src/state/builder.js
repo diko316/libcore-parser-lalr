@@ -187,8 +187,9 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         tokens = [],
         pendingTerminals = [],
         isTerminalName = false;
-    var c, l, dc, dl, definition, pl,
-        grammar, groups, group, index, terminal;
+    var c, l, dc, dl, definition, pl, original,
+        grammar, groups, group, index, terminal,
+        callback;
 
     stateMap.reset();
     
@@ -224,6 +225,7 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
 
             isTerminalName = !ruleNameRe.test(definition);
             name = stateMap.generateSymbol(definition);
+            original = definition;
         
         }
         else if (isArray(definition)) {
@@ -235,22 +237,20 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
             
             dc = -1;
             dl = definition.length;
+
+            callback = isTerminalName ? registerTerminal : registerRule;
             
             for (; dl--;) {
 
-                if (isTerminalName) {
-                    registerTerminal(name,
-                                    definition[++dc],
-                                    grammar);
+                group = callback(name, definition[++dc], grammar);
+
+                // register group
+                if (!isTerminalName) {
+                    groups[group[1]] = stateMap.generateSymbol((dc + 1) +
+                                                                ':' +
+                                                                original);
                 }
-                else {
-                    group = registerRule(name,
-                                        definition[++dc],
-                                        grammar,
-                                        tokenizer);
-                    // register group
-                    groups[group[1]] = name + ':' + (dc + 1);
-                }
+
             }
 
         }

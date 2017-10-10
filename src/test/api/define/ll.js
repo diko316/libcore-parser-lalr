@@ -92,8 +92,6 @@ describe('Declares LL grammar using ' +
 
                     verify = list[++current];
 
-                    console.log("verify ", item);
-
                     expect(item).toEqual(verify);
                 }
 
