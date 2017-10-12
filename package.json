@@ -1,6 +1,6 @@
 {
   "name": "libcore-parser-lalr",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "LR Parser (my way)",
   "main": "dist/libcore-parser-lalr.js",
   "module": "dist/libcore-parser-lalr.es.js",
@@ -52,6 +52,6 @@
   },
   "optionalDependencies": {
     "libcore": "0.3.7",
-    "libcore-tokenizer": "0.1.7"
+    "libcore-tokenizer": "0.1.8"
   }
 }
