@@ -74,19 +74,19 @@ Item.prototype = {
     },
 
     setRecursion: function (ruleId) {
-        var item = clone(this),
+        var //item = clone(this),
             // common recursion
             recursion = this.recursion;
 
         // item.parent = this;
 
         // item.recursion = recursion;
-        recursion[ruleId] = item;
+        recursion[ruleId] = this;
 
         // item.contextPointer =
         //     item.nextInQueue = null;
 
-        return item;
+        return this;
     },
 
 
@@ -107,7 +107,7 @@ Item.prototype = {
 
     },
 
-    point: function (lexeme) {
+    point: function (lexeme, ruleId) {
 
         var Class = Pointer,
             found = this.getPointerItem(lexeme);
@@ -124,7 +124,7 @@ Item.prototype = {
             found.recursion = recursion;
 
             // create pointer
-            this.onSetPointer(new Class(lexeme, found));
+            this.onSetPointer(new Class(lexeme, found, ruleId));
 
             // populate dependencies
             list = this.watched;
@@ -133,7 +133,7 @@ Item.prototype = {
                 item = list[++c];
                 has = item.getPointerItem(lexeme);
                 if (!has) {
-                    item.onSetPointer(new Class(lexeme, found));
+                    item.onSetPointer(new Class(lexeme, found, ruleId));
                 }
             }
         }
@@ -199,7 +199,9 @@ Item.prototype = {
     observe: function (item, ruleId) {
         var list = this.observed;
 
-        list[list.length] = [item, ruleId];
+        if (item !== this) {
+            list[list.length] = [item, ruleId];
+        }
 
     },
 
@@ -218,10 +220,22 @@ Item.prototype = {
             for (pointer = this.pointer; pointer; pointer = pointer.next) {
                 lexeme = pointer.item;
                 currentPointer = item.getPointerItem(lexeme);
+
+                // if (item.state === 's6' && !currentPointer) {
+                //     console.log("applying pointer? ", lexeme, '->', pointer.to.state, " existing? ", !!currentPointer);
+                // }
+
+
                 // populate!
                 if (!currentPointer) {
-                    item.onSetPointer(new Class(lexeme, pointer.to));
+                    item.onSetPointer(new Class(lexeme, pointer.to, pointer.ruleIds));
                 }
+                // else {
+
+                //     if (item.state === 's6') {
+                //         console.log("already defined pointer ", item.state, ':', lexeme, " -> ", pointer.to.state);
+                //     }
+                // }
             }
         }
     },

@@ -253,8 +253,8 @@ var parser = Parser.define("Expr",
             ],
 
     "Assign",   [
-                ["buang", /\=/, "Assign"],
-                "Additive"
+                "Additive",
+                ["buang", /\=/, "Assign"]
             ],
 ],
 [
@@ -265,31 +265,31 @@ var iterator = parser.iterator(),
     ol = 0;
 var lexeme;
 
-//console.log(parser);
+// //console.log(parser);
 
-//iterator.set('Buang = (Chaching = Buang.Buang)');
+// iterator.set('Buang = (Chaching = Buang.Buang)');
 
-//iterator.set('Buang = 2 * Buang(4)');
-//iterator.set('2 * Buang');
-//iterator.set('Buang(4)');
+// //iterator.set('Buang = 2 * Buang(4)');
+// //iterator.set('2 * Buang');
+// //iterator.set('Buang(4)');
 
-iterator.set('Buang + 1 * 2');
+// //iterator.set('Buang + 1 * 2');
 
-for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
-    output[ol++] = {
-        name: lexeme.name,
-        type: lexeme.type,
-        reduceCount: lexeme.reduceCount
-    };
-    // console.log(lexeme.name,
-    //             lexeme.value,
-    //             lexeme.reduceCount);
-    //console.log('-----------', lexeme.name, lexeme.value);
+// for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
+//     output[ol++] = {
+//         name: lexeme.name,
+//         type: lexeme.type,
+//         reduceCount: lexeme.reduceCount
+//     };
+//     console.log(lexeme.name,
+//                 lexeme.value,
+//                 lexeme.reduceCount);
+//     //console.log('-----------', lexeme.name, lexeme.value);
 
-}
+// }
 
-//console.log(JSON.stringify(output));
+// //console.log(JSON.stringify(output));
 
 
 
-//console.log(iterator);
+// console.log(iterator);

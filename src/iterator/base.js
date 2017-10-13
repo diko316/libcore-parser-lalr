@@ -80,6 +80,8 @@ BaseIterator.prototype = {
             endToken = map.endToken;
             
         var name, to, ref, lexeme, literal;
+
+        console.log("token ", token);
         
         if (token) {
             name = token[0];
@@ -113,6 +115,7 @@ BaseIterator.prototype = {
             
             // found shift state
             ref = states[state];
+
             if (name in ref) {
                 return 2;
             }
@@ -147,6 +150,8 @@ BaseIterator.prototype = {
         // do not return "$" token
         me.returns = name !== map.endSymbol;
         me.params = me.nextTokenIndex;
+
+        console.log("shift from ! ", state, lexeme.value, " to ", me.pstate);
         
         return 1;
 
@@ -176,6 +181,7 @@ BaseIterator.prototype = {
         created.rule = lookup[reduce[2]];
         last = null;
         
+        console.log("reduce count? ", params, " from ", reduce);
         
         for (; l--;) {
             item = buffer[--bl];
