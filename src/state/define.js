@@ -10,17 +10,21 @@ function define(grammar, map, exclude) {
 
         defineState = STATE_START,
         ruleIndex = grammar.rules,
-        ruleGroup = grammar.ruleGroup;
+        ruleGroup = grammar.ruleGroup,
+        recursionObject = {};
 
     var anchor, production, rule, lexeme, ruleId, params,
-        queue, recursion, pendingRecursion, item;
+        queue, recursion, pendingRecursion, item, stopped;
+
+
+    var followItem;
 
 
     if (exclude) {
         map.setExcludes(exclude);
     }
 
-    queue = new Item(map.start, map);
+    queue = new Item(map.start, map, recursionObject, grammar);
     
     for (; defineState;) {
 
@@ -58,6 +62,7 @@ function define(grammar, map, exclude) {
             if (ruleId === false) {
                 params = 0;
                 queue = item = anchor;
+                stopped = false;
                 break;
             }
 
@@ -65,7 +70,9 @@ function define(grammar, map, exclude) {
             params++;
 
             // non-terminal
-            if (lexeme in ruleIndex) {
+            if (!stopped && lexeme in ruleIndex) {
+
+                //console.log(lexeme, ' in ', ruleIndex, ' = ', ruleIndex[lexeme]);
 
                 // find recursion
                 recursion = item.getRecursionItem(ruleId);
@@ -75,28 +82,35 @@ function define(grammar, map, exclude) {
 
                     // apply and watch updates
                     recursion.watchItem(item);
+                    stopped = true;
+                    
 
-                    // end here
-                    for (; rule && rule[0] !== false; rule = rule[2]) { }
-                    break;
-
-                }
-
-                // create recursion
-                recursion = item.createRecursion(ruleId, lexeme);
-
-                // immediately insert if anchor
-                if (queue === anchor) {
-                    queue.insertNextQueue(recursion);
+                    // follow and end here
+                    // for (; rule && rule[0] !== false; rule = rule[2]) {
+                    //     ruleId = rule[0];
+                    //     lexeme = rule[1];
+                    // }
+                    // break;
 
                 }
-                // add to pending
-                else if (pendingRecursion) {
-                    pendingRecursion.appendQueue(recursion);
-                }
-                // first pending recursion
                 else {
-                    pendingRecursion = recursion;
+
+                    // create recursion
+                    recursion = item.createRecursion(ruleId, lexeme);
+
+                    // immediately insert if anchor
+                    if (queue === anchor) {
+                        queue.insertNextQueue(recursion);
+
+                    }
+                    // add to pending
+                    else if (pendingRecursion) {
+                        pendingRecursion.appendQueue(recursion);
+                    }
+                    // first pending recursion
+                    else {
+                        pendingRecursion = recursion;
+                    }
                 }
                 
             }
@@ -104,9 +118,11 @@ function define(grammar, map, exclude) {
             item = item.point(lexeme);
 
             // reduce if no more next rules or end of lexer rule
-            if (!rule || rule[0] === false) {
-                item.reduce(production, params, ruleGroup[ruleId]);
-            }
+            //if (!stopped) {
+                if (!rule || rule[0] === false) {
+                    item.reduce(production, params, ruleGroup[ruleId]);
+                }
+            //}
         
         break;
         case STATE_RULE_END:

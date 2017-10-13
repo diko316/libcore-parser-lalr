@@ -4,7 +4,7 @@ import { clone } from "../helper.js";
 
 import Pointer from "./pointer.js";
 
-function Item(id, map) {
+function Item(id, map, recursion, grammar) {
     var list = map.rawStates;
     
     this.map = map;
@@ -12,9 +12,10 @@ function Item(id, map) {
     this.base = this;
     this.watched = [];
     this.reduceList = [];
-    this.recursion = {};
+    this.recursion = recursion;
 
     this.references = [];
+    this.grammar = grammar;
 
     // create default
     this.lexeme = map.augmentedRoot;
@@ -37,6 +38,7 @@ Item.prototype = {
     lexeme: null,
     recursion: null,
     finalized: false,
+    recursionAnchor: null,
 
     getRecursionItem: function (ruleId) {
         var recursion = this.recursion;
@@ -84,6 +86,11 @@ Item.prototype = {
         return item;
     },
 
+    isObserved: function (item) {
+
+        return this.watched.indexOf(item) !== -1;
+    },
+
     getPointerItem(lexeme) {
         var pointer = this.pointer;
 
@@ -102,17 +109,18 @@ Item.prototype = {
 
         var Class = Pointer,
             found = this.getPointerItem(lexeme);
-        var list, c, len, item, has;
+        var list, c, len, item, has, recursion;
 
         // create if not found
         if (!found) {
+            recursion = this.recursion;
 
             // create item
-            found = new Item(null, this.map);
+            found = new Item(null, this.map, recursion, this.grammar);
             found.lexeme = lexeme;
 
             // share recursion
-            found.recursion = this.recursion;
+            found.recursion = recursion;
 
             // create pointer
             this.onSetPointer(new Class(lexeme, found));

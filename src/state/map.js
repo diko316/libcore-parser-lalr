@@ -54,6 +54,7 @@ StateMap.prototype = {
     },
 
     generateSymbol: function (name) {
+
         var lookup = this.lookup,
             symbols = this.symbol,
             access = ':' + name;
@@ -64,7 +65,8 @@ StateMap.prototype = {
         }
     
         // create symbol
-        id = 's>' + (++this.symbolGen);
+        //id = 's>' + (++this.symbolGen);
+        id = name;
     
         lookup[access] = id;
         symbols[id] = name;

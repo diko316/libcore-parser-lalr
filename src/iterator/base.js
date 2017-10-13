@@ -121,6 +121,7 @@ BaseIterator.prototype = {
         
         // can reduce remaining buffer
         if (me.buffer.length && state in ends) {
+            console.log("reducing ", state, name);
             return 3;
         }
         
@@ -139,6 +140,8 @@ BaseIterator.prototype = {
             name = lexeme.symbol;
         
         buffer[buffer.length] = [state, lexeme];
+
+        console.log("shifted ", state, ':', name, '->', states[state][name]);
         
         me.pstate = states[state][name];
         me.current = lexeme;
@@ -176,6 +179,7 @@ BaseIterator.prototype = {
         created.rule = lookup[reduce[2]];
         last = null;
         
+        
         for (; l--;) {
             item = buffer[--bl];
             state = item[0];
@@ -204,6 +208,9 @@ BaseIterator.prototype = {
         created.value = values;
         created.from = from;
         created.to = to;
+
+        console.log("reduced to ", name, ' new state ', state);
+        
         
         buffer.length = bl;
         
@@ -244,6 +251,11 @@ BaseIterator.prototype = {
         
         name = lexeme.symbol;
         me.pstate = state;
+
+        console.log(state, ":", map.symbol[name], ' [', name, ']',
+            "can shift? ", name in ref,
+            "can reduce? ", state in ends
+        );
         
         // shift
         if (name in ref) {
