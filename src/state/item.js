@@ -4,7 +4,7 @@ import { clone } from "../helper.js";
 
 import Pointer from "./pointer.js";
 
-function Item(id, map, recursion, grammar) {
+function Item(map, recursion, id) {
     var list = map.rawStates;
     
     this.map = map;
@@ -13,12 +13,11 @@ function Item(id, map, recursion, grammar) {
     this.watched = [];
     this.reduceList = [];
     this.recursion = recursion;
+    this.appliedRecursion = {};
 
     this.references = [];
-    this.grammar = grammar;
 
-    // create default
-    this.lexeme = map.augmentedRoot;
+    this.observed = [];
 
     // register as raw state
     list[list.length] = this;
@@ -33,12 +32,11 @@ Item.prototype = {
     map: null,
     pointer: null,
     watched: null,
-    contextPointer: null,
+    //contextPointer: null,
     reduceList: null,
-    lexeme: null,
     recursion: null,
     finalized: false,
-    recursionAnchor: null,
+    appliedRecursion: null,
 
     getRecursionItem: function (ruleId) {
         var recursion = this.recursion;
@@ -47,49 +45,53 @@ Item.prototype = {
 
     },
 
-    insertNextQueue: function (item) {
-        var after = this.nextInQueue,
-            last = item;
+    // insertNextQueue: function (item) {
+    //     var after = this.nextInQueue,
+    //         last = item;
 
-        this.nextInQueue = item;
+    //     this.nextInQueue = item;
 
-        // connect last item with my next item
-        for (; last.nextInQueue; last = last.nextInQueue) { }
+    //     // connect last item with my next item
+    //     for (; last.nextInQueue; last = last.nextInQueue) { }
 
-        last.nextInQueue = after;
+    //     last.nextInQueue = after;
 
+    // },
+
+    // appendQueue: function (item) {
+    //     var last = this;
+
+    //     for (; last.nextInQueue; last = last.nextInQueue) { }
+
+    //     last.nextInQueue = item;
+
+    // },
+
+    hasRecursion: function (ruleId) {
+        var recursion = this.recursion;
+        
+        return ruleId in recursion ? recursion[ruleId] : null;
     },
 
-    appendQueue: function (item) {
-        var last = this;
-
-        for (; last.nextInQueue; last = last.nextInQueue) { }
-
-        last.nextInQueue = item;
-
-    },
-
-    createRecursion: function (ruleId, lexeme) {
+    setRecursion: function (ruleId) {
         var item = clone(this),
             // common recursion
             recursion = this.recursion;
 
-        item.parent = this;
+        // item.parent = this;
 
-        item.lexeme = lexeme;
-        item.recursion = recursion;
+        // item.recursion = recursion;
         recursion[ruleId] = item;
 
-        item.contextPointer =
-            item.nextInQueue = null;
+        // item.contextPointer =
+        //     item.nextInQueue = null;
 
         return item;
     },
 
-    isObserved: function (item) {
 
-        return this.watched.indexOf(item) !== -1;
-    },
+
+
 
     getPointerItem(lexeme) {
         var pointer = this.pointer;
@@ -116,8 +118,7 @@ Item.prototype = {
             recursion = this.recursion;
 
             // create item
-            found = new Item(null, this.map, recursion, this.grammar);
-            found.lexeme = lexeme;
+            found = new Item(this.map, recursion, null);
 
             // share recursion
             found.recursion = recursion;
@@ -141,34 +142,34 @@ Item.prototype = {
 
     },
 
-    watchItem: function (item) {
-        var list = this.watched,
-            Class = Pointer;
-        var pointer, lexeme, found;
+    // watchItem: function (item) {
+    //     var list = this.watched,
+    //         Class = Pointer;
+    //     var pointer, lexeme, found;
 
-        if (item.state !== this.state && list.indexOf(item) === -1) {
+    //     if (item.state !== this.state && list.indexOf(item) === -1) {
             
-            list[list.length] = item;
+    //         list[list.length] = item;
 
-            pointer = this.pointer;
+    //         pointer = this.pointer;
 
-            // add current pointers
-            for (; pointer; pointer = pointer.next) {
-                lexeme = pointer.item;
-                found = item.getPointerItem(lexeme);
+    //         // add current pointers
+    //         for (; pointer; pointer = pointer.next) {
+    //             lexeme = pointer.item;
+    //             found = item.getPointerItem(lexeme);
 
-                if (!found) {
-                    item.onSetPointer(new Class(lexeme, pointer.to));
-                }
-            }
-        }
+    //             if (!found) {
+    //                 item.onSetPointer(new Class(lexeme, pointer.to));
+    //             }
+    //         }
+    //     }
         
-    },
+    // },
 
     onSetPointer: function (pointer) {
-        var last = this.pointer,
-            context = this.contextPointer;
-        var parent;
+        var last = this.pointer;
+            //context = this.contextPointer;
+        //var parent;
 
         // connect to last item
         if (last) {
@@ -184,12 +185,42 @@ Item.prototype = {
         }
 
         // populate context pointer across parents
-        if (!context) {
-            // populate parent context pointers
-            parent = this;
-            for (; parent; parent = parent.parent) {
-                if (!parent.contextPointer) {
-                    parent.contextPointer = pointer;
+        // if (!context) {
+        //     // populate parent context pointers
+        //     parent = this;
+        //     for (; parent; parent = parent.parent) {
+        //         if (!parent.contextPointer) {
+        //             parent.contextPointer = pointer;
+        //         }
+        //     }
+        // }
+    },
+
+    observe: function (item, ruleId) {
+        var list = this.observed;
+
+        list[list.length] = [item, ruleId];
+
+    },
+
+    finalizeObserved: function () {
+        var list = this.observed,
+            c = -1,
+            l = list.length,
+            Class = Pointer;
+
+        var item, pointer, currentPointer, lexeme;
+
+        for (; l--;) {
+            item = list[++c][0];
+
+            // sync pointers
+            for (pointer = this.pointer; pointer; pointer = pointer.next) {
+                lexeme = pointer.item;
+                currentPointer = item.getPointerItem(lexeme);
+                // populate!
+                if (!currentPointer) {
+                    item.onSetPointer(new Class(lexeme, pointer.to));
                 }
             }
         }

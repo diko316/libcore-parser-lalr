@@ -284,7 +284,7 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     // console.log(lexeme.name,
     //             lexeme.value,
     //             lexeme.reduceCount);
-    console.log('-----------', lexeme.name, lexeme.value);
+    //console.log('-----------', lexeme.name, lexeme.value);
 
 }
 
@@ -292,4 +292,4 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 
 
 
-console.log(iterator);
+//console.log(iterator);
