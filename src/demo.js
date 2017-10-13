@@ -200,70 +200,70 @@ import Parser from "./index.js";
 
 
 
-var parser = Parser.define("Expr",
-[
-    "Expr", [
-                "Assign"
-            ],
+// var parser = Parser.define("Expr",
+// [
+//     "Expr", [
+//                 "Assign"
+//             ],
 
-    "buang", [
-                /Buang/,
-                /Chaching/
-            ],
+//     "buang", [
+//                 /Buang/,
+//                 /Chaching/
+//             ],
 
-    "number",[
-                /[0-9]+/
-            ],
+//     "number",[
+//                 /[0-9]+/
+//             ],
 
-    "+",    [/\+/],
+//     "+",    [/\+/],
 
-    "*",    [/\*/],
+//     "*",    [/\*/],
     
-    "Basic",  [
-                "buang",
-                "number",
-                [/\(/, "Expr", /\)/]
-            ],
+//     "Basic",  [
+//                 "buang",
+//                 "number",
+//                 [/\(/, "Expr", /\)/]
+//             ],
 
-    "Operand",  [
-                "Basic",
-                ["Basic", "Arguments"],
-                ["Operand", /\./, "Basic"],
-                ["Operand", /\[/, "Expr", /\]/]
-            ],
+//     "Operand",  [
+//                 "Basic",
+//                 ["Basic", "Arguments"],
+//                 ["Operand", /\./, "Basic"],
+//                 ["Operand", /\[/, "Expr", /\]/]
+//             ],
 
-    "Arguments",[
-                [/\(/, /\)/],
-                [/\(/, "ArgumentList", /\)/]
-            ],
+//     "Arguments",[
+//                 [/\(/, /\)/],
+//                 [/\(/, "ArgumentList", /\)/]
+//             ],
 
-    "ArgumentList",[
-                "Expr",
-                ["ArgumentList", /\,/, "Expr"]
-            ],
+//     "ArgumentList",[
+//                 "Expr",
+//                 ["ArgumentList", /\,/, "Expr"]
+//             ],
 
-    "Multiple", [
-                "Operand",
-                ["Multiple", '*', "Operand"]
-            ],
+//     "Multiple", [
+//                 "Operand",
+//                 ["Multiple", '*', "Operand"]
+//             ],
 
-    "Additive", [
-                "Multiple",
-                ["Additive", '+', "Multiple"]
-            ],
+//     "Additive", [
+//                 "Multiple",
+//                 ["Additive", '+', "Multiple"]
+//             ],
 
-    "Assign",   [
-                "Additive",
-                ["buang", /\=/, "Assign"]
-            ],
-],
-[
-    /[ \r\n\t]+/
-]);
-var iterator = parser.iterator(),
-    output = [],
-    ol = 0;
-var lexeme;
+//     "Assign",   [
+//                 "Additive",
+//                 ["buang", /\=/, "Assign"]
+//             ],
+// ],
+// [
+//     /[ \r\n\t]+/
+// ]);
+// var iterator = parser.iterator(),
+//     output = [],
+//     ol = 0;
+// var lexeme;
 
 // //console.log(parser);
 
@@ -293,3 +293,48 @@ var lexeme;
 
 
 // console.log(iterator);
+
+
+
+
+
+
+var parser = Parser.define("Expr",
+[
+    "Expr", [
+                "Assign"
+            ],
+
+    "buang", [
+                /Buang/,
+                /Chaching/
+            ],
+
+    "number",[
+                /[0-9]+/
+            ],
+
+    "+",    [/\+/],
+
+    "*",    [/\*/],
+    
+    "Basic",  [
+                "buang",
+                "number",
+                [/\(/, "Expr", /\)/]
+            ],
+
+    "Additive", [
+                "Basic",
+                ["Additive", '+', "Basic"]
+            ],
+
+    "Assign",   [
+                "Additive",
+                ["buang", /\=/, "Assign"]
+            ],
+],
+[
+    /[ \r\n\t]+/
+]);
+

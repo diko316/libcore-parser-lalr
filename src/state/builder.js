@@ -16,7 +16,7 @@ import  {
             defineRules
         } from "./builder/rule.js";
 
-//import defineStates from "./define.js";
+import define from "./define.js";
 
 import Registry from "./builder/registry.js";
 
@@ -73,6 +73,8 @@ function build(root, map, tokenizer, definitions, exclude) {
             throw new Error("Invalid item in definitions parameter.");
         }
     }
+
+    define(registry);
 
     console.log(registry);
 }

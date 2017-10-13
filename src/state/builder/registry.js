@@ -10,11 +10,11 @@ function Registry(map, tokenizer) {
     this.tokenizer = tokenizer;
     this.map = map;
 
-    this.transitions = {};
+    this.productions = {};
+    this.lexemes = {};
+
+    this.states = {};
     this.recursions = {};
-    this.starts = {};
-    this.ends = {};
-    this.rules = {};
     
     this.terminals = [];
     this.terminalLookup = {};
@@ -22,7 +22,6 @@ function Registry(map, tokenizer) {
     this.symbolGen = 0;
     this.symbol = {};
     this.lookup = {};
-
 
     
 
@@ -110,50 +109,59 @@ Registry.prototype = {
     },
 
     registerRule: function (name, mask, terminals) {
-        var transitions = this.transitions,
+        var states = this.states,
             recursions = this.recursions,
-            starts = this.starts,
-            ends = this.ends,
-            rules = this.rules,
+            productions = this.productions,
+            lexemes = this.lexemes,
+            rules = [],
+            rl = 0,
             c = -1,
             total = mask.length,
             l = total + 1;
-        var items, terminal, id, start, last;
+        var items, id, lexeme, list, index;
 
-        start = name in rules ? rules[name] : null;
-
-        if (!(name in rules)) {
-            rules[name] = null;
+        if (!(name in productions)) {
+            productions[name] = [];
+            lexemes[name] = [];
         }
 
-        console.log("------------------------------- Rules for: " + name);
+        list = productions[name];
+        index = list.length;
+        list[index] = rules;
+        lexemes[name][index] = mask;
+        
+        //console.log("------------------------------- Rules for: " + name);
 
         for (; l--;) {
-            //item = mask[++c];
-            
+            lexeme = mask[++c];
 
             items = mask.slice(0);
-            items.splice(++c, 0, '.');
+            items.splice(c, 0, '.');
             id = items.join(' ');
 
-            console.log(id);
-
-            if (id in transitions) {
+            if (id in states) {
                 throw new Error("Duplicate Grammar Rule found in " + name);
             }
 
-            transitions[id] = name;
+            rules[rl++] = id;
 
+            states[id] = id;
+
+            // non-terminal
             if (l && !(c in terminals)) {
-                recursions[id] = mask[c];
+                recursions[id] = lexeme;
             }
-
-            
-
 
         }
 
 
+    },
+
+    getRules: function (production) {
+        var list = this.productions;
+
+        return production in list ?
+                    [list[production], this.lexemes[production]] : null;
     }
 };
 
