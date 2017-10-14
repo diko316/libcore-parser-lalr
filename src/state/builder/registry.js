@@ -149,11 +149,11 @@ Registry.prototype = {
 
             // non-terminal
             if (l && !(c in terminals)) {
+                console.log("recusion? ", id, " is ", lexeme);
                 recursions[id] = lexeme;
             }
 
         }
-
 
     },
 
@@ -162,6 +162,11 @@ Registry.prototype = {
 
         return production in list ?
                     [list[production], this.lexemes[production]] : null;
+    },
+
+    isRecursed: function (id) {
+        var recursions = this.recursions;
+        return id in recursions && recursions[id];
     }
 };
 
