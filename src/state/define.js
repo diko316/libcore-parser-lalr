@@ -2,6 +2,9 @@
 
 import State from "./define/state.js";
 
+import List from "./define/list.js";
+
+
 function define(registry) {
 
     var map = registry.map,
@@ -10,18 +13,23 @@ function define(registry) {
         STATE_START = 1,
         STATE_RUN_RULES = 2,
         STATE_START_RULE = 3,
-        STATE_DEFINE_LEXEME = 4,
-        STATE_DEFINE_ENDER = 5,
-        STATE_END_RULES = 6,
+        STATE_RUN_RECURSION = 4,
+        STATE_DEFINE_LEXEME = 5,
+        STATE_DEFINE_ENDER = 6,
+        STATE_END_RULES = 7,
+        Queue = List,
         defineState = STATE_START,
         start = new StateClass(registry),
-        queue = [null, start, map.augmentedRoot];
-    var rules, rule, rindex, rlen, lexemes, tokens,
+        queue = new Queue('queue'),
+        pending = new Queue('pending');
+    var item, rules, rule, rindex, rlen, lexemes, tokens,
         id, token, lindex, llen,
-        anchor, state, production, recursion, last;
+        state, production, recursion, enqueue,
+        ruleState, isRuleState, tagged;
 
-    var limit = 10;
+    var limit = 100;
 
+    queue.push([start, map.augmentedRoot]);
 
     for (; defineState;) {
         if (!--limit) {
@@ -30,10 +38,10 @@ function define(registry) {
 
         switch (defineState) {
         case STATE_START:
+            item = queue.shift();
 
-            production = queue[2];
-            anchor = queue[1];
-            console.log("processing production ", production);
+            production = item[1];
+            ruleState = item[0];
 
             rules = registry.getRules(production);
             lexemes = rules[1];
@@ -62,68 +70,103 @@ function define(registry) {
 
             id = rule[0];
             token = tokens[0];
-            state = anchor;
-            
+            state = ruleState;
 
-            console.log("start! ", state);
-            defineState = STATE_DEFINE_LEXEME;
+            // find recursion
+            if (state.findRecursion(id)) {
+                defineState = STATE_RUN_RECURSION;
+            }
+            else {
+                defineState = STATE_DEFINE_LEXEME;
+                break;
+            }
+
+        /* falls through */
+        case STATE_RUN_RECURSION:
+            tagged = state.hasTag(id);
+            if (!tagged) {
+                state.tag(id);
+            }
+
+            if (!state.pointed(token)) {
+                state.pointTo(token, state);  
+            }
+
+            // apply the rest of the rules
+            recursion = registry.isRecursed(id);
+            if (recursion && !tagged) {
+                queue.push([state, recursion]);  
+            }
+            
+            defineState = STATE_RUN_RULES;
+            break;
 
         /* falls through */
         case STATE_DEFINE_LEXEME:
+
             id = rule[++lindex];
             state.tag(id);
+
+            isRuleState = state === ruleState;
+
+            if (!isRuleState) {
+                state.rparent = ruleState;
+            }
 
             if (!(llen--)) {
                 defineState = STATE_DEFINE_ENDER;
                 break;
             }
             
-
+            
             token = tokens[lindex];
 
             // recursion
             recursion = registry.isRecursed(id);
             if (recursion) {
-                last = queue;
-                for (; last[0]; last = last[0]) { }
-                last[0] = [null, state, recursion];
-                console.log("recursion found? ", id, " is ", recursion);
+                (isRuleState ?
+                    queue : pending).push([state, recursion]);
             }
 
-            state = state.point(token);
-
-
-
-            console.log('processing ', id, ' = ', token, 'len', llen);
-
+            state = state.point(token, ruleState);
             break;
 
         /* falls through */
         case STATE_DEFINE_ENDER:
             id = rule[++lindex];
-            console.log('processing last', id, lindex, anchor);
-
             defineState = STATE_RUN_RULES;
             break;
         
         case STATE_END_RULES:
-            queue = queue[0];
-            console.log("ended rules recurse to? ", queue);
-            defineState = queue ? STATE_START : STATE_END;
-            if (!queue) {
-                console.log("end!");
+            enqueue = queue.last;
+
+            if (!enqueue && pending.last) {
+                queue.push(enqueue = pending.shift());
             }
+
+            defineState = enqueue ? STATE_START : STATE_END;
         }
-
-
-
         
     }
     
+    // generate report
+    var states = registry.vstates;
+    var c, l, state, pointer;
 
+    for (c = -1, l = states.length; l--;) {
+        state = states[++c];
+        pointer = state.pointer;
+        for (;pointer; pointer = pointer.next) {
+            console.log(state.id, ':', pointer.token, '->', pointer.to.id);
+        }
+    }
+    console.log(registry.vstates);
+    console.log(queue, pending);
     
-
 }
+
+
+
 
 
 export default define;

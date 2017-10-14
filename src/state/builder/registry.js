@@ -13,7 +13,12 @@ function Registry(map, tokenizer) {
     this.productions = {};
     this.lexemes = {};
 
-    this.states = {};
+    this.stateIndex = {};
+    this.vstateIdGen = 0;
+    this.vstateLookup = {};
+    this.vstates = [];
+
+
     this.recursions = {};
     
     this.terminals = [];
@@ -109,7 +114,7 @@ Registry.prototype = {
     },
 
     registerRule: function (name, mask, terminals) {
-        var states = this.states,
+        var states = this.stateIndex,
             recursions = this.recursions,
             productions = this.productions,
             lexemes = this.lexemes,
@@ -149,7 +154,7 @@ Registry.prototype = {
 
             // non-terminal
             if (l && !(c in terminals)) {
-                console.log("recusion? ", id, " is ", lexeme);
+                //console.log("recusion? ", id, " is ", lexeme);
                 recursions[id] = lexeme;
             }
 

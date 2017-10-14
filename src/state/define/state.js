@@ -1,25 +1,57 @@
 'use strict';
 
 
-function State(map) {
-    this.map = map;
-    this.tags = [];
-    this.pointer = null;
+function State(registry) {
+    var list = registry.vstates,
+        id = 's' + (++registry.vstateIdGen);
+    
+    registry.vstateLookup[id] = 
+        list[list.length] = this;
+    
+    this.id = id;
+    this.registry = registry;
+    this.tags = {};
+    this.tagNames = [];
+    this.pointer = 
+        this.rparent = null;
+
+    
 }
 
 State.prototype = {
     pointer: null,
-    map: null,
+    registry: null,
     constructor: State,
 
-    tag: function (id) {
-        var list = this.tags;
+    tag: function (id, anchored) {
+        var list = this.tags,
+            names = this.tagNames;
 
-        if (list.indexOf(id) === -1) {
-            list[list.length] = id;
+        if (anchored) {
+            console.log("anchored! ", id);
+        }
+
+        if (!(id in list)) {
+            list[id] = true;
+            names[names.length] = id;
         }
 
         return this;
+    },
+
+    hasTag: function (id) {
+        return id in this.tags;
+    },
+
+    findRecursion: function (id) {
+        var parent = this;
+
+        for (; parent; parent = parent.rparent) {
+            if (parent.hasTag(id)) {
+                return parent;
+            }
+        }
+        return null;
     },
 
     pointed: function (token) {
@@ -33,26 +65,38 @@ State.prototype = {
         return null;
     },
 
-    point: function (token) {
+    pointTo: function (token, state) {
+        var last = this.pointer,
+            pointer = {
+                token: token,
+                to: state,
+                next: null
+            };
+
+        if (last) {
+            for (; last.next; last = last.next) { }
+            last.next = pointer;
+        }
+        else {
+            this.pointer = pointer;
+        }
+
+        return state;
+    },
+
+    point: function (token, recurseState) {
         var pointer = this.pointed(token);
-        var last;
+        var newState;
 
         // create
         if (!pointer) {
-            pointer = {
-                token: token,
-                to: new State(this.map),
-                next: null
-            };
-            last = this.pointer;
-            if (last) {
-                for (; last.next; last = last.next) { }
-                last.next = pointer;
-            }
-            else {
-                this.pointer = pointer;
-            }
+            newState = new State(this.registry);
+            newState.rparent = recurseState;
+
+            return this.pointTo(token, newState);
+
         }
+
         return pointer.to;
     }
 };
