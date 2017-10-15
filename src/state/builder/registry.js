@@ -17,6 +17,7 @@ function Registry(map, tokenizer) {
     this.vstateIdGen = 0;
     this.vstateLookup = {};
     this.vstates = [];
+    this.ends = {};
 
 
     this.recursions = {};
@@ -104,6 +105,8 @@ Registry.prototype = {
                 list[list.length] = access;
             }
 
+            this.tokenizer.define([name, terminal]);
+
             return name;
             
         }
@@ -172,6 +175,25 @@ Registry.prototype = {
     isRecursed: function (id) {
         var recursions = this.recursions;
         return id in recursions && recursions[id];
+    },
+
+    setEnd: function (id, production, params, ruleId) {
+        var ends = this.ends,
+            state = this.vstateLookup[id];
+
+        if (!(id in ends)) {
+            ends[id] = [production, params, ruleId];
+        }
+        else if (ends[id][0] !== production) {
+            throw new Error("Reduce conflict! " + state.id +
+                                ":" + ends[id][0] + ' <- ' + production);
+        }
+        
+    },
+
+    isEnd: function (id) {
+        var ends = this.ends;
+        return id in ends && ends[id];
     }
 };
 

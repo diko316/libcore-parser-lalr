@@ -46,11 +46,23 @@ StateMap.prototype = {
     rawStates: null,
     
     constructor: StateMap,
+
+    createState: function (id) {
+        var states = this.states;
+
+        if (id in states) {
+            return states[id];
+        }
+        return (states[id] = {});
+    },
     
-    generateState: function () {
-        var id = 's' + (++this.stateGen);
-        this.states[id] = {};
-        return id;
+    createPointer: function (id, token, target) {
+        var state = this.createState(id);
+
+        state[this.generateSymbol(token)] = target;
+
+        return state;
+
     },
 
     generateSymbol: function (name) {

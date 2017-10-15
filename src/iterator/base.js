@@ -81,7 +81,7 @@ BaseIterator.prototype = {
             
         var name, to, ref, lexeme, literal;
 
-        console.log("token ", token);
+        
         
         if (token) {
             name = token[0];
@@ -92,6 +92,8 @@ BaseIterator.prototype = {
                 me.params = to;
                 return 1;
             }
+
+            
             
             lexeme = new Lexeme('terminal');
 
@@ -103,6 +105,8 @@ BaseIterator.prototype = {
             else {
                 literal = map.symbol[name];
             }
+
+            
             
             lexeme.name = literal;
             lexeme.symbol = name;
@@ -115,6 +119,8 @@ BaseIterator.prototype = {
             
             // found shift state
             ref = states[state];
+
+            console.log("token accepted! ", token, name, ' shift? ', ref);
 
             if (name in ref) {
                 return 2;
@@ -253,6 +259,7 @@ BaseIterator.prototype = {
         me.pstate = state;
        
         // shift
+        console.log('shift? ', name, 'lexeme', lexeme, ' in ', ref);
         if (name in ref) {
             return 1;
         

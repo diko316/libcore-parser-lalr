@@ -265,15 +265,15 @@ import Parser from "./index.js";
 //     ol = 0;
 // var lexeme;
 
-// //console.log(parser);
+//console.log(parser);
 
-// iterator.set('Buang = (Chaching = Buang.Buang)');
+//iterator.set('Buang = (Chaching = Buang.Buang)');
 
-// //iterator.set('Buang = 2 * Buang(4)');
-// //iterator.set('2 * Buang');
-// //iterator.set('Buang(4)');
+//iterator.set('Buang = 2 * Buang(4)');
+//iterator.set('2 * Buang');
+//iterator.set('Buang(4)');
 
-// //iterator.set('Buang + 1 * 2');
+// iterator.set('Buang + 1');
 
 // for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 //     output[ol++] = {

@@ -27,6 +27,7 @@ import Registry from "./builder/registry.js";
 function build(root, map, tokenizer, definitions, exclude) {
     var isString = string,
         isArray = array,
+        isRegex = regex,
         
         isTerm = isTerminal,
         defTerminal = defineTerminals,
@@ -36,7 +37,7 @@ function build(root, map, tokenizer, definitions, exclude) {
         
         terminalDefinition = true;
 
-    var c, l, definition, registry;
+    var c, l, definition, registry, excludes;
 
 
     map.reset();
@@ -76,7 +77,22 @@ function build(root, map, tokenizer, definitions, exclude) {
 
     define(registry);
 
-    console.log(registry);
+    // register excludes
+    if (isArray(exclude)) {
+        excludes = [];
+
+        console.log("excludes! ", exclude);
+        for (c = -1, l = exclude.length; l--;) {
+            definition = exclude[++c];
+            if (!isRegex(definition)) {
+                throw new Error("Invalid [exclude] pattern parameter.");
+            }
+            excludes[c] = registry.registerTerminal(definition);
+
+        }
+
+        map.setExcludes(excludes);
+    }
 }
 
 

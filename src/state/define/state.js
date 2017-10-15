@@ -1,9 +1,10 @@
 'use strict';
 
 
-function State(registry) {
-    var list = registry.vstates,
-        id = 's' + (++registry.vstateIdGen);
+function State(registry, id) {
+    var list = registry.vstates;
+
+    id = id || 's' + (++registry.vstateIdGen);
     
     registry.vstateLookup[id] = 
         list[list.length] = this;
