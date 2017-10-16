@@ -3,8 +3,7 @@
 import {
             string,
             regex,
-            array,
-            contains
+            array
             
         } from "libcore";
         

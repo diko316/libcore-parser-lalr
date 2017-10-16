@@ -156,8 +156,7 @@ Registry.prototype = {
             rl = 0,
             c = -1,
             total = mask.length,
-            l = total + 1,
-            map = this.map;
+            l = total + 1;
         var items, id, lexeme, list, index;
 
         if (!(name in productions)) {
@@ -177,7 +176,7 @@ Registry.prototype = {
 
             items = mask.slice(0);
             items.splice(c, 0, '.');
-            id = this.hashState(items.join(' '));
+            id = this.hashState(name + ' -> ' + items.join(' '));
 
             if (id in states) {
                 throw new Error("Duplicate Grammar Rule found in " + name);
