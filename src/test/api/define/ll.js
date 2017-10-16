@@ -93,6 +93,7 @@ describe('Declares LL grammar using ' +
                     verify = list[++current];
 
                     expect(item).toEqual(verify);
+                    expect(iterator.error).toBe(null);
                 }
 
             });

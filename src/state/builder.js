@@ -93,6 +93,8 @@ function build(root, map, tokenizer, definitions, exclude) {
 
         map.setExcludes(excludes);
     }
+
+    return true;
 }
 
 

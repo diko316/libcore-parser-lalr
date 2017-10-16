@@ -25,7 +25,6 @@ function StateMap() {
     this.symbol = {};
     this.start = start;
     this.states = states;
-    this.anchors = {};
     this.ends = {};
     this.exclude = {};
     this.finalized = false;
@@ -126,14 +125,6 @@ StateMap.prototype = {
 
     },
     
-    setAnchorState: function (state) {
-        var anchors = this.anchors;
-        
-        if (!(state in anchors)) {
-            this.anchors[state] = true;
-        }
-    },
-    
     setReduceState: function (state, name, params, ruleIndex) {
         var ends = this.ends,
             id = this.generateReduceId(name, params, ruleIndex),
@@ -192,7 +183,7 @@ StateMap.prototype = {
     importStates: function (definition) {
         var isObject = object,
             isString = string;
-        var start, states, anchors, ends, root, exclude, symbol, reducers,
+        var start, states, ends, root, exclude, symbol, reducers,
             list, c, l;
         
         if (!isObject(definition)) {
@@ -217,13 +208,8 @@ StateMap.prototype = {
                         'Invalid "start" state in definition parameter.');
         }
         
-        // anchors = definition.anchors;
-        // if (!isObject(anchors)) {
-        //     throw new Error('Invalid "anchors" states in definition parameter.');
-        // }
-        
         ends = definition.ends;
-        if (!isObject(anchors)) {
+        if (!isObject(ends)) {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
 
@@ -250,7 +236,6 @@ StateMap.prototype = {
         this.root = root;
         this.start = start;
         this.states = states;
-        //this.anchors = anchors;
         this.ends = ends;
         this.reducers = reducers;
         this.exclude = exclude;
@@ -278,7 +263,6 @@ StateMap.prototype = {
                 root: this.root,
                 start: this.start,
                 states: this.states,
-                //anchors: this.anchors,
                 reducers: this.reducers,
                 ends: this.ends,
                 exclude: list,

@@ -17,7 +17,6 @@ function StateMap() {
     this.symbol = {};
     this.start = start;
     this.states = states;
-    this.anchors = {};
     this.ends = {};
     this.exclude = {};
     this.finalized = false;
@@ -38,14 +37,27 @@ StateMap.prototype = {
     rawStates: null,
     
     constructor: StateMap,
+
+    createState: function (id) {
+        var states = this.states;
+
+        if (id in states) {
+            return states[id];
+        }
+        return (states[id] = {});
+    },
     
-    generateState: function () {
-        var id = 's' + (++this.stateGen);
-        this.states[id] = {};
-        return id;
+    createPointer: function (id, token, target) {
+        var state = this.createState(id);
+
+        state[token] = target;
+
+        return state;
+
     },
 
     generateSymbol: function (name) {
+
         var lookup = this.lookup,
             symbols = this.symbol,
             access = ':' + name;
@@ -56,7 +68,8 @@ StateMap.prototype = {
         }
     
         // create symbol
-        id = 's>' + (++this.symbolGen);
+        id = 's' + (++this.symbolGen).toString(16);
+        //id = name;
     
         lookup[access] = id;
         symbols[id] = name;
@@ -75,7 +88,7 @@ StateMap.prototype = {
             return lookup[access];
         }
 
-        id = 'r>' + (++this.reduceGen);
+        id = 'r' + (++this.reduceGen).toString(16);
 
         lookup[access] = id;
         all[id] = [name, params, ruleIndex];
@@ -102,14 +115,6 @@ StateMap.prototype = {
 
         return false;
 
-    },
-    
-    setAnchorState: function (state) {
-        var anchors = this.anchors;
-        
-        if (!(state in anchors)) {
-            this.anchors[state] = true;
-        }
     },
     
     setReduceState: function (state, name, params, ruleIndex) {
@@ -170,7 +175,7 @@ StateMap.prototype = {
     importStates: function (definition) {
         var isObject = object,
             isString = string;
-        var start, states, anchors, ends, root, exclude, symbol, reducers,
+        var start, states, ends, root, exclude, symbol, reducers,
             list, c, l;
         
         if (!isObject(definition)) {
@@ -195,13 +200,8 @@ StateMap.prototype = {
                         'Invalid "start" state in definition parameter.');
         }
         
-        anchors = definition.anchors;
-        if (!isObject(anchors)) {
-            throw new Error('Invalid "anchors" states in definition parameter.');
-        }
-        
         ends = definition.ends;
-        if (!isObject(anchors)) {
+        if (!isObject(ends)) {
             throw new Error('Invalid "ends" states in definition parameter.');
         }
 
@@ -228,7 +228,6 @@ StateMap.prototype = {
         this.root = root;
         this.start = start;
         this.states = states;
-        this.anchors = anchors;
         this.ends = ends;
         this.reducers = reducers;
         this.exclude = exclude;
@@ -256,7 +255,6 @@ StateMap.prototype = {
                 root: this.root,
                 start: this.start,
                 states: this.states,
-                anchors: this.anchors,
                 reducers: this.reducers,
                 ends: this.ends,
                 exclude: list,
@@ -282,585 +280,690 @@ StateMap.prototype = {
     
 };
 
-function empty() {
-}
+var LEXEME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
 
-function clone(obj) {
-        var E = empty;
-        E.prototype = obj;
-        return new E();
+function isTerminal(name) {
+        return name === "$" || !LEXEME_RE.test(name);
     }
 
-function Pointer(lexeme, state) {
+function defineTerminals(registry, name, definitions) {
+        var isRegex = regex;
+        var c, l, terminal;
 
-    this.item = lexeme;
+        for (c = -1, l = definitions.length; l--;) {
+            terminal = definitions[++c];
 
-    // bind
-    this.to = state;
-
-}
-
-Pointer.prototype = {
-    constructor: Pointer,
-    next: null,
-    item: null,
-    to: null
-
-};
-
-function Item(id, map) {
-    var list = map.rawStates;
-    
-    this.map = map;
-    this.state = id = id || map.generateState();
-    this.base = this;
-    this.watched = [];
-    this.reduceList = [];
-    this.recursion = {};
-
-    this.references = [];
-
-    // create default
-    this.lexeme = map.augmentedRoot;
-
-    // register as raw state
-    list[list.length] = this;
-
-}
-
-Item.prototype = {
-    state: null,
-    constructor: Item,
-    nextInQueue: null,
-    parent: null,
-    map: null,
-    pointer: null,
-    watched: null,
-    contextPointer: null,
-    reduceList: null,
-    lexeme: null,
-    recursion: null,
-    finalized: false,
-
-    getRecursionItem: function (ruleId) {
-        var recursion = this.recursion;
-
-        return ruleId in recursion ? recursion[ruleId] : null;
-
-    },
-
-    insertNextQueue: function (item) {
-        var after = this.nextInQueue,
-            last = item;
-
-        this.nextInQueue = item;
-
-        // connect last item with my next item
-        for (; last.nextInQueue; last = last.nextInQueue) { }
-
-        last.nextInQueue = after;
-
-    },
-
-    appendQueue: function (item) {
-        var last = this;
-
-        for (; last.nextInQueue; last = last.nextInQueue) { }
-
-        last.nextInQueue = item;
-
-    },
-
-    createRecursion: function (ruleId, lexeme) {
-        var item = clone(this),
-            // common recursion
-            recursion = this.recursion;
-
-        item.parent = this;
-
-        item.lexeme = lexeme;
-        item.recursion = recursion;
-        recursion[ruleId] = item;
-
-        item.contextPointer =
-            item.nextInQueue = null;
-
-        return item;
-    },
-
-    getPointerItem: function getPointerItem(lexeme) {
-        var pointer = this.pointer;
-
-        // find from parent and up
-        for (; pointer; pointer = pointer.next) {
-            if (pointer.item === lexeme) {
-                return pointer.to;
+            if (!isRegex(terminal)) {
+                throw new Error("Invalid Terminal pattern: " + terminal);
             }
+
+            if (!registry.registerTerminal(terminal, name)) {
+                throw new Error("Invalid Terminal pattern: " + terminal);
+            }
+
         }
+
+    }
+
+
+
+function defineRules(registry, name, definitions) {
+        var isString = string,
+            isRegex = regex,
+            isArray = array,
+            isTerm = isTerminal;
+
+        var c, l, rl, rule, lexeme, ruleMask, terminals, isTerminalToken;
+
+        for (c = -1, l = definitions.length; l--;) {
+            rule = definitions[++c];
+            if (isString(rule) || isRegex(rule)) {
+                rule = [rule];
+            }
+            else if (!isArray(rule)) {
+                throw new Error("Invalid Grammar rule declared in " + name);
+            }
+
+            //console.log("define rules: ", name, " definitions ", rule);
+
+            // create rule mask
+            rl = rule.length;
+            ruleMask = [];
+            terminals = {};
+
+            for (; rl--;) {
+                lexeme = rule[rl];
+
+                if (isRegex(lexeme)) {
+
+                    if (!registry.terminalExist(lexeme)) {
+                        registry.registerTerminal(lexeme);
+                    }
+
+                    lexeme = '/' + lexeme.source + '/';
+                    isTerminalToken = true;
+                }
+                else if (!isString(lexeme)) {
+                    throw new Error("Invalid Grammar rule declared in " + name);
+                }
+                else {
+                    isTerminalToken = isTerm(lexeme);
+                }
+
+                
+                //console.log("hashed! ", ruleMask[rl]);
+                ruleMask[rl] = registry.map.generateSymbol(lexeme);//registry.hashLexeme(lexeme);
+
+                if (isTerminalToken) {
+                    terminals[rl] = true;
+                }
+                
+            }
+
+            // define states from ruleMask
+            registry.registerRule(name, ruleMask, terminals);
+
+        }
+
+
+
+    }
+
+function List(name) {
+    this.name = name;
+}
+
+List.prototype = {
+    constructor: List,
+    first: null,
+    last: null,
+
+    shift: function () {
+        var item = this.first;
+        var first;
+
+        if (item) {
+            this.first = first = item[0];
+            if (!first) {
+                this.last = first;
+            }
+            return item[1];
+        }
+        
 
         return null;
-
     },
 
-    point: function (lexeme) {
+    push: function (item) {
+        item = [null, item];
 
-        var Class = Pointer,
-            found = this.getPointerItem(lexeme);
-        var list, c, len, item, has;
-
-        // create if not found
-        if (!found) {
-
-            // create item
-            found = new Item(null, this.map);
-            found.lexeme = lexeme;
-
-            // share recursion
-            found.recursion = this.recursion;
-
-            // create pointer
-            this.onSetPointer(new Class(lexeme, found));
-
-            // populate dependencies
-            list = this.watched;
-
-            for (c = -1, len = list.length; len--;) {
-                item = list[++c];
-                has = item.getPointerItem(lexeme);
-                if (!has) {
-                    item.onSetPointer(new Class(lexeme, found));
-                }
-            }
+        if (this.last) {
+            this.last[0] = item;
+        }
+        else {
+            this.first = item;
         }
 
-        return found;
+        this.last = item;
 
+        return this;
+    }
+};
+
+function State(registry, id) {
+    var list = registry.vstates;
+
+    id = id || 's' + (++registry.vstateIdGen);
+    
+    registry.vstateLookup[id] = 
+        list[list.length] = this;
+    
+    this.id = id;
+    this.registry = registry;
+    this.tags = {};
+    this.tagNames = [];
+    this.pointer = new List();
+    this.rparent = null;
+    this.recursedAs = {};
+    
+}
+
+State.prototype = {
+    pointer: null,
+    registry: null,
+    constructor: State,
+
+    tag: function (id) {
+        var list = this.tags,
+            names = this.tagNames;
+
+        if (!(id in list)) {
+            list[id] = true;
+            names[names.length] = id;
+        }
+
+        return this;
     },
 
-    watchItem: function (item) {
-        var list = this.watched,
-            Class = Pointer;
-        var pointer, lexeme, found;
+    hasTag: function (id) {
+        return id in this.tags;
+    },
 
-        if (item.state !== this.state && list.indexOf(item) === -1) {
-            
-            list[list.length] = item;
+    setRecursed: function (production) {
+        var access = ':' + production,
+            list = this.recursedAs;
 
-            pointer = this.pointer;
+        if (!(access in list)) {
+            list[access] = true;
+        }
 
-            // add current pointers
-            for (; pointer; pointer = pointer.next) {
-                lexeme = pointer.item;
-                found = item.getPointerItem(lexeme);
+        return this;
+    },
 
-                if (!found) {
-                    item.onSetPointer(new Class(lexeme, pointer.to));
-                }
+    isRecursed: function (production) {
+        var access = ':' + production,
+            list = this.recursedAs;
+
+        return access in list;
+    },
+
+    findRecursion: function (id) {
+        var me = this,
+            parent = me.rparent;
+
+        for (; parent; parent = parent.rparent) {
+            if (parent.hasTag(id)) {
+                return parent;
+            }
+        }
+        return null;
+    },
+
+    pointed: function (token) {
+        var pointer = this.pointer.first;
+        var item;
+
+        for (; pointer; pointer = pointer[0]) {
+            item = pointer[1];
+            if (item[1] === token) {
+                return item[0];
             }
         }
         
+        return null;
     },
 
-    onSetPointer: function (pointer) {
-        var last = this.pointer,
-            context = this.contextPointer;
-        var parent;
-
-        // connect to last item
-        if (last) {
-            // connect last
-            for (; last.next; last = last.next) {}
-            last.next = pointer;
-
-        }
-        // new pointer
-        else {
-            // set base pointer
-            this.base.pointer = pointer;
-        }
-
-        // populate context pointer across parents
-        if (!context) {
-            // populate parent context pointers
-            parent = this;
-            for (; parent; parent = parent.parent) {
-                if (!parent.contextPointer) {
-                    parent.contextPointer = pointer;
-                }
-            }
-        }
+    pointTo: function (token, state) {
+        this.pointer.push([state, token]);
+        return state;
     },
 
-    finalize: function () {
-        var map = this.map,
-            id = this.state,
-            stateObject = map.states[id];
+    point: function (token, recurseState) {
+        var pointed = this.pointed(token);
+        var newState;
 
-        var list, c, len, item, lexeme;
+        // create
+        if (!pointed) {
+            newState = new State(this.registry);
+            newState.rparent = recurseState;
 
-        // finalize main pointers
-        item = this.pointer;
+            return this.pointTo(token, newState);
 
-        for (; item; item = item.next) {
-            lexeme = item.item;
-
-            if (!(lexeme in stateObject)) {
-                stateObject[lexeme] = item.to.state;
-            }
         }
 
-        // reduce
-        list = this.reduceList;
-        for (c = -1, len = list.length; len--;) {
-            item = list[++c];
-            map.setReduceState(id, item[0], item[1], item[2]);
-        }
-
-    },
-
-    reduce: function (production, params, group) {
-        var list = this.reduceList;
-
-        list[list.length] = [production, params, group];
-
+        return pointed;
     }
-
 };
 
-function define$1(grammar, map, exclude) {
-    var STATE_END = 0,
+function define$1(registry) {
+
+    var map = registry.map,
+        StateClass = State,
+        STATE_END = 0,
         STATE_START = 1,
-        STATE_RULE_ITERATE = 2,
-        STATE_RULE_END = 5,
-
+        STATE_RUN_RULES = 2,
+        STATE_START_RULE = 3,
+        STATE_DEFINE_LEXEME = 4,
+        STATE_DEFINE_ENDER = 5,
+        STATE_END_RULES = 6,
+        Queue = List,
         defineState = STATE_START,
-        ruleIndex = grammar.rules,
-        ruleGroup = grammar.ruleGroup;
+        start = new StateClass(registry, map.start),
+        queue = new Queue('queue'),
+        pending = new Queue('pending');
 
-    var anchor, production, rule, lexeme, ruleId, params,
-        queue, recursion, pendingRecursion, item;
+    var item, rules, rule, rindex, rlen, lexemes, tokens,
+        id, token, lindex, llen,
+        state, production, recursion, enqueue,
+        ruleState, tagged,
+        pointed, target,
+        
+        states, pointer, c, l;
 
+    //var limit = 1000;
 
-    if (exclude) {
-        map.setExcludes(exclude);
-    }
+    queue.push([start, map.augmentedRoot]);
 
-    queue = new Item(map.start, map);
-    
     for (; defineState;) {
+        // if (!--limit) {
+        //     break;
+        // }
 
         switch (defineState) {
         case STATE_START:
-            if (!queue) {
-                defineState = STATE_END;
+            item = queue.shift();
+
+            production = item[1];
+            ruleState = item[0];
+
+            // go to next
+            if (ruleState.isRecursed(production)) {
+                defineState = STATE_END_RULES;
                 break;
             }
 
-            anchor = queue;
-            production = queue.lexeme;
+            ruleState.setRecursed(production);
+            rules = registry.getRules(production);
+            lexemes = rules[1];
+            rules = rules[0];
+            rindex = -1;
+            rlen = rules.length;
+            defineState = STATE_RUN_RULES;
             
-            rule = ruleIndex[production];
-
-            defineState = STATE_RULE_ITERATE;
-
-            pendingRecursion = null;
 
         /* falls through */
-        case STATE_RULE_ITERATE:
-            // go to next pending
-            if (!rule) {
-                defineState = STATE_RULE_END;
+        case STATE_RUN_RULES:
+            if (!(rlen--)) {
+                defineState = STATE_END_RULES;
+                break;
+            }
+
+            rule = rules[++rindex];
+            tokens = lexemes[rindex];
+            defineState = STATE_START_RULE;
+            
+
+        /* falls through */
+        case STATE_START_RULE:
+            lindex = -1;
+            llen = tokens.length;
+
+            id = rule[0];
+            token = tokens[0];
+            state = ruleState;
+
+            if (state.hasTag(id)) {
+                defineState = STATE_RUN_RULES;
                 break;
             }
             
-            ruleId = rule[0];
-            lexeme = rule[1];
+            target = state.findRecursion(id, token);
+            if (target) {
+                pointed = target.pointed(token);
+                if (pointed && !state.pointed(token)) {
+                    state.pointTo(token, pointed);
+                }
+            }
 
-            // go to next rule
-            rule = rule[2];
+            defineState = STATE_DEFINE_LEXEME;
 
-            // start of rule
-            if (ruleId === false) {
-                params = 0;
-                queue = item = anchor;
+        /* falls through */
+        case STATE_DEFINE_LEXEME:
+
+            id = rule[++lindex];
+            tagged = state.hasTag(id);
+            
+
+            // dont redefine, go to next rule
+            if (!(llen--) || tagged) {
+                defineState = tagged ?
+                                STATE_RUN_RULES : STATE_DEFINE_ENDER;
                 break;
             }
 
-            // connect states
-            params++;
+            //console.log("define id! ", id);
+
+            token = tokens[lindex];
+
+            // recursion
+            recursion = registry.isRecursed(id);
+            if (recursion) {
+                (state === ruleState ?
+                    queue : pending).push([state, recursion]);
+            }
+
+            state.tag(id);
+            pointed = state.pointed(token);
+            state = pointed || state.point(token, ruleState);
+
+            break;
+
+        /* falls through */
+        case STATE_DEFINE_ENDER:
+            id = rule[lindex];
+            state.tag(id);
+            registry.setEnd(state.id, production, lindex, id);
+            defineState = STATE_RUN_RULES;
+            break;
+        
+        case STATE_END_RULES:
+            enqueue = queue.last;
+
+            if (!enqueue && pending.last) {
+                queue.push(enqueue = pending.shift());
+            }
+
+            defineState = enqueue ? STATE_START : STATE_END;
+            // if (!enqueue) {
+            //     console.log("ended! iterations: ", 1000 - limit);
+            // }
+        }
+        
+    }
+
+    //console.log("iterations: ", 1000 - limit);
+
+    // generate state map
+    states = registry.vstates;
+    for (c = - 1, l = states.length; l--;) {
+        state = states[++c];
+        id = state.id;
+        pointer = state.pointer.first;
+        map.createState(id);
+
+        // apply pointer
+        for (; pointer; pointer = pointer[0]) {
+            item = pointer[1];
+            map.createPointer(id, item[1], item[0].id);
+        }
+
+        // set end
+        item = registry.isEnd(id);
+        if (item) {
+            map.setReduceState(id, item[0], item[1], item[2]);
+        }
+    }
+
+    
+
+    
+    // generate report
+    // var states = registry.vstates,
+    //     ends = registry.ends;
+    // var c, l, state, pointer, end;
+
+    // for (c = -1, l = states.length; l--;) {
+    //     state = states[++c];
+    //     pointer = state.pointer.first;
+    //     if (!pointer) {
+    //         console.log('no transitions in ', state.id);
+    //     }
+    //     for (;pointer; pointer = pointer[0]) {
+    //         item = pointer[1];
+    //         target = item[0];
+    //         end = target.id in ends ?
+    //                 ' end: ' + ends[target.id].join(',') : '';
+
+    //         console.log(state.id, ':', item[1], '->', target.id, end);
+    //     }
+    // }
+    // console.log(registry.vstates);
+    // console.log(queue, pending);
+    
+}
+
+function Registry(map, tokenizer) {
+    this.tokenizer = tokenizer;
+    this.map = map;
+
+    this.productions = {};
+    this.lexemes = {};
+
+    this.stateIndex = {};
+    this.vstateIdGen = 0;
+    this.vstateLookup = {};
+    this.vstates = [];
+    this.ends = {};
+
+
+    this.recursions = {};
+    
+    this.terminals = [];
+    this.terminalLookup = {};
+
+    this.symbolGen = 0;
+    this.symbol = {};
+    this.lookup = {};
+
+    this.stateTagIdGen = 0;
+    this.stateTagId = {};
+    this.stateTagIdLookup = {};
+
+    
+
+}
+
+Registry.prototype = {
+    constructor: Registry,
+
+    startRule: null,
+    rules: null,
+
+    hashState: function (name) {
+        var lookup = this.stateTagIdLookup,
+            access = ':' + name;
+        var id;
+
+        if (access in lookup) {
+            return lookup[access];
+        }
+
+        id = 't' + (++this.stateTagIdGen).toString(16);
+        lookup[access] = id;
+        this.stateTagId[id] = name;
+
+        return id;
+
+    },
+
+    lookupState: function (id) {
+        var list = this.stateTagId;
+        
+        return id in list ? list[id] : null;
+    },
+
+    hashLexeme: function (name) {
+        
+        var lookup = this.lookup,
+            symbols = this.symbol,
+            access = ':' + name;
+        var id;
+        
+        if (access in lookup) {
+            return lookup[access];
+        }
+    
+        // create symbol
+        //id = 'rhash>' + (++this.symbolGen);
+        //id = name.replace(/[^a-zA-Z0-9]/, 'x');
+        id = name;
+        //id = this.map.generateSymbol(name);
+
+    
+        lookup[access] = id;
+        symbols[id] = name;
+    
+        return id;
+    
+    },
+
+    lookupLexeme: function (id) {
+        var lookup = this.lookup;
+        return id in lookup ? lookup[id] : null;
+    },
+
+    terminalExist: function (terminal) {
+        var lookup = this.terminalLookup;
+
+        return string(terminal) ?
+                    contains(lookup, terminal) :
+                    '/' + terminal.source + '/' in lookup;
+    },
+
+    registerTerminal: function (terminal, name) {
+        var lookup = this.terminalLookup,
+            names = this.terminals,
+            access = this.map.generateSymbol('/' + terminal.source + '/');
+        var list;
+
+        if (!name) {
+            name = access;
+        }
+
+        //console.log("registering terminal ", name);
+
+        // allow register
+        if (!(access in lookup)) {
+            
+            lookup[access] = name;
+
+            // register named
+            if (access === name) {
+                names[names.length] = name;
+
+            }
+            else if (!contains(lookup, name)) {
+                names[names.length] = name;
+                lookup[name] = [access];
+
+            }
+            else {
+                list = lookup[name];
+                list[list.length] = access;
+            }
+
+            this.tokenizer.define([name, terminal]);
+
+            return name;
+            
+        }
+
+        return false;
+
+
+    },
+
+    registerRule: function (name, mask, terminals) {
+        var this$1 = this;
+
+        var states = this.stateIndex,
+            recursions = this.recursions,
+            productions = this.productions,
+            lexemes = this.lexemes,
+            rules = [],
+            rl = 0,
+            c = -1,
+            total = mask.length,
+            l = total + 1,
+            map = this.map;
+        var items, id, lexeme, list, index;
+
+        if (!(name in productions)) {
+            productions[name] = [];
+            lexemes[name] = [];
+        }
+
+        list = productions[name];
+        index = list.length;
+        list[index] = rules;
+        lexemes[name][index] = mask;
+        
+        //console.log("------------------------------- Rules for: " + name);
+
+        for (; l--;) {
+            lexeme = mask[++c];
+
+            items = mask.slice(0);
+            items.splice(c, 0, '.');
+            id = this$1.hashState(items.join(' '));
+
+            if (id in states) {
+                throw new Error("Duplicate Grammar Rule found in " + name);
+            }
+
+            rules[rl++] = id;
+
+            states[id] = id;
 
             // non-terminal
-            if (lexeme in ruleIndex) {
-
-                // find recursion
-                recursion = item.getRecursionItem(ruleId);
-                
-                // follow recursion
-                if (recursion) {
-
-                    // apply and watch updates
-                    recursion.watchItem(item);
-
-                    // end here
-                    for (; rule && rule[0] !== false; rule = rule[2]) { }
-                    break;
-
-                }
-
-                // create recursion
-                recursion = item.createRecursion(ruleId, lexeme);
-
-                // immediately insert if anchor
-                if (queue === anchor) {
-                    queue.insertNextQueue(recursion);
-
-                }
-                // add to pending
-                else if (pendingRecursion) {
-                    pendingRecursion.appendQueue(recursion);
-                }
-                // first pending recursion
-                else {
-                    pendingRecursion = recursion;
-                }
-                
-            }
-            
-            item = item.point(lexeme);
-
-            // reduce if no more next rules or end of lexer rule
-            if (!rule || rule[0] === false) {
-                item.reduce(production, params, ruleGroup[ruleId]);
-            }
-        
-        break;
-        case STATE_RULE_END:
-
-            // insert pending recursions
-            if (pendingRecursion) {
-                queue.appendQueue(pendingRecursion);
-            }
-
-            // try next pending
-            queue = queue.nextInQueue;
-            defineState = STATE_START;
-
-        break;
-        }
-
-    }
-    
-    // build state map
-    return true;
-    
-}
-
-var RULE_NAME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
-
-
-function registerToken(grammar, definition, name) {
-    var terminal = grammar.terminal,
-        alias = grammar.tokenAlias,
-        tokens = grammar.tokens,
-        map = grammar.map,
-        pendingTerminals = grammar.pendingTerminals;
-    var reference, len;
-
-    reference = map.generateSymbol('/' + definition.source + '/'); 
-    if (!name) {
-        name = reference;
-    }
-    
-    // register alias as terminal
-    if (!(reference in alias)) {
-        alias[reference] = name;
-        len = tokens.length;
-        tokens[len++] = name;
-        tokens[len++] = definition;
-
-    }
-    else if (alias[reference] !== name) {
-        throw new Error("Token definition " + definition.source +
-                        " is a duplicate of " +
-                        map.lookupSymbol(alias[reference]));
-    }
-    
-    if (!(name in terminal)) {
-        terminal[name] = reference;
-        
-        if (pendingTerminals.indexOf(name) === -1) {
-            pendingTerminals[pendingTerminals.length] = name;
-        }
-    }
-
-    return [name, reference];
-}
-
-function defineTerminal(name, rule, grammar) {
-    var map = grammar.map,
-        setToken = registerToken,
-        isRegex = regex,
-        errorMessage = "Invalid terminal definitions in " +
-                        map.lookupSymbol(name);
-
-    var c, l, item;
-
-    if (isRegex(rule)) {
-        rule = [rule];
-    }
-
-    if (!array(rule)) {
-        throw new Error(errorMessage);
-    }
-
-    for (c = -1, l = rule.length; l--;) {
-        item = rule[++c];
-
-        if (isRegex(item)) {
-            setToken(grammar, item, name);
-        }
-        else {
-            throw new Error(errorMessage);
-        }
-    }
-}
-
-function defineRule(name, rule, grammar) {
-    var rules = grammar.rules,
-        ruleIndex = grammar.ruleIndex,
-        lexIndex = grammar.lexIndex,
-        ruleNames = grammar.ruleNames,
-        ruleNameRe = RULE_NAME_RE,
-        map = grammar.map,
-        pendingTerminals = grammar.pendingTerminals,
-        registerTerminal = registerToken,
-        isString = string,
-        isRegex = regex;
-    var l, item, lexemes, token, created,
-        prefix, suffix, from, to, current, lexemeId;
-    
-    if (isString(rule) || isRegex(rule)) {
-        rule = [rule];
-    }
-    
-    if (!array(rule)) {
-        throw new Error("Invalid grammar rule found in " + name);
-    }
-    
-    from = to = null;
-    lexemes = [];
-    
-    for (l = rule.length; l--;) {
-        item = rule[l];
-
-        if (isRegex(item)) {
-            token = registerTerminal(grammar, item);
-            item = token[0];
-
-        }
-        else if (!isString(item)) {
-            throw new Error("Invalid token in grammar rule " + item);
-        }
-        // terminal
-        else if (!ruleNameRe.test(item)) {
-
-            item = map.generateSymbol(item);
-
-            if (pendingTerminals.indexOf(item) === -1) {
-                pendingTerminals[pendingTerminals.length] = item;
+            if (l && !(c in terminals)) {
+                //console.log("recusion? ", id, " is ", lexeme);
+                recursions[id] = lexeme;
             }
 
         }
-        else {
-            item = map.generateSymbol(item);
+
+    },
+
+    getRules: function (production) {
+        var list = this.productions;
+
+        return production in list ?
+                    [list[production], this.lexemes[production]] : null;
+    },
+
+    isRecursed: function (id) {
+        var recursions = this.recursions;
+        return id in recursions && recursions[id];
+    },
+
+    setEnd: function (id, production, params, ruleId) {
+        var ends = this.ends,
+            state = this.vstateLookup[id];
+
+        if (!(id in ends)) {
+            ends[id] = [production, params, ruleId];
+        }
+        else if (ends[id][0] !== production) {
+            throw new Error("Reduce conflict! " + state.id +
+                                ":" + ends[id][0] + ' <- ' + production);
         }
         
-        lexemes[l] = item;
-        lexemeId = 'r' + (++grammar.rgenId);
-        lexIndex[lexemeId] = item;
-        created = [lexemeId, item, from];
-        
-        if (!from) {
-            to = created;
-        }
-        from = created;
+    },
 
+    isEnd: function (id) {
+        var ends = this.ends;
+        return id in ends && ends[id];
     }
-    
-    suffix = ' -> ' + lexemes.join(',');
-    prefix = name + ':';
-    token = name + suffix;
-    
-    if (token in ruleIndex) {
-        throw new Error("Grammar rule is already defined " + name + suffix);
-    }
-    else {
-        ruleIndex[token] = true;
-    }
-    
-    if (!(name in rules)) {
-        rules[name] = null;
-        ruleNames[ruleNames.length] = name;
-    }
-    
-    // append
-    from = [false, null, from];
-    current = rules[name];
-    
-    if (current) {
-        to[2] = current;
-    }
-    
-    rules[name] = from;
-    
-    return [from[2][0], to[0]];
-}
+};
 
-
-function build(root, stateMap, tokenizer, definitions, exclude) {
+function build(root, map, tokenizer, definitions, exclude) {
     var isString = string,
         isArray = array,
         isRegex = regex,
-        registerRule = defineRule,
-        registerTerminal = defineTerminal,
-        defineToken = registerToken,
-        rules = {},
-        ruleNameRe = RULE_NAME_RE,
-        ruleNames = [],
-        grammarRoot = "$" + root,
+        
+        isTerm = isTerminal,
+        defTerminal = defineTerminals,
+        defRule = defineRules,
         name = null,
-        tokens = [],
-        pendingTerminals = [],
-        isTerminalName = false;
-    var c, l, dc, dl, definition, pl, original,
-        grammar, groups, group, index, terminal,
-        callback;
+        original = name,
+        
+        terminalDefinition = true;
 
-    stateMap.reset();
-    
-    stateMap.root = stateMap.generateSymbol(grammarRoot);
+    var c, l, definition, registry, excludes;
 
-    grammar = {
-        root: grammarRoot,
-        rgenId: 0,
-        map: stateMap,
-        ruleNames: ruleNames = [],
-        rules: rules,
-        terminal: terminal = {},
-        tokens: tokens,
-        tokenAlias: {},
-        pendingTerminals: pendingTerminals,
-        lexIndex: index = {},
-        ruleIndex: {},
-        ruleGroup: groups = {}
-    };
+
+    map.reset();
     
+    map.root = map.generateSymbol("$" + root);
+
+    registry = new Registry(map, tokenizer);
+
     // augment root
     definitions.splice(definitions.length,
                        0,
-                       stateMap.lookupSymbol(stateMap.augmentedRoot),
-                        [[ root,
-                            stateMap.lookupSymbol(stateMap.endSymbol)]]);
+                       map.lookupSymbol(map.augmentedRoot),
+                        [[ root, map.lookupSymbol(map.endSymbol)]]);
 
     for (c = -1, l = definitions.length; l--;) {
         
@@ -868,98 +971,43 @@ function build(root, stateMap, tokenizer, definitions, exclude) {
         
         if (isString(definition)) {
 
-            isTerminalName = !ruleNameRe.test(definition);
-            name = stateMap.generateSymbol(definition);
+            terminalDefinition = isTerm(definition);
+            name = map.generateSymbol(definition);
             original = definition;
-        
+
         }
-        else if (isArray(definition)) {
-            
-            // do not accept grammar rule if it doesn't have name
-            if (!name) {
-                throw new Error("Invalid grammar rules parameter.");
-            }
-            
-            dc = -1;
-            dl = definition.length;
+        else if (name && isArray(definition)) {
 
-            callback = isTerminalName ? registerTerminal : registerRule;
-            
-            for (; dl--;) {
-
-                group = callback(name, definition[++dc], grammar);
-
-                // register group
-                if (!isTerminalName) {
-                    groups[group[1]] = stateMap.generateSymbol((dc + 1) +
-                                                                ':' +
-                                                                original);
-                }
-
-            }
+            (terminalDefinition ?
+                defTerminal :
+                defRule)(registry, name, definition);
 
         }
         else {
             throw new Error("Invalid item in definitions parameter.");
         }
-        
     }
-    
-    // add excludes
-    if (exclude) {
-        exclude = exclude.slice(0);
-        pl = pendingTerminals.length;
-        
-        for (l = exclude.length; l--;) {
-            definition = exclude[l];
 
-            if (isString(definition)) {
-                name = stateMap.generateSymbol(definition);
+    define$1(registry);
 
-                if (pendingTerminals.indexOf(name) === -1) {
-                    pendingTerminals[pl++] = name;
-                }
-                
-            }
-            else if (isRegex(definition)) {
-                definition = defineToken(grammar, definition, null, true);
-                name = definition[0];
-            }
-            else {
-                throw new Error("Invalid exclude token parameter.");
-            }
+    // register excludes
+    if (isArray(exclude)) {
+        excludes = [];
 
-            // rename!
-            exclude[l] = name;
+        //console.log("excludes! ", exclude);
+        for (c = -1, l = exclude.length; l--;) {
+            definition = exclude[++c];
+            if (!isRegex(definition)) {
+                throw new Error("Invalid [exclude] pattern parameter.");
+            }
+            excludes[c] = registry.registerTerminal(definition);
+
         }
-        
+
+        map.setExcludes(excludes);
     }
 
-    // resolve pending terminals
-    pl = pendingTerminals.length;
-    for (; pl--;) {
-        name = pendingTerminals[pl];
-
-        if (!(name in terminal)) {
-            throw new Error("Terminal is not defined ",
-                            stateMap.lookupSymbol(name));
-        }
-    }
-    pendingTerminals.length = 0;
-
-    // register
-    if (tokens.length) {
-        tokenizer.define(tokens);
-    }
-
-    
-    if (!contains(rules, stateMap.generateSymbol(root))) {
-        throw new Error("Invalid root grammar rule parameter.");
-    }
-    
-    return define$1(grammar, stateMap, exclude) &&
-            stateMap.finalize();
-
+    return true;
 }
 
 var TYPE = {
@@ -1075,6 +1123,8 @@ BaseIterator.prototype = {
             endToken = map.endToken;
             
         var name, to, ref, lexeme, literal;
+
+        
         
         if (token) {
             name = token[0];
@@ -1085,6 +1135,8 @@ BaseIterator.prototype = {
                 me.params = to;
                 return 1;
             }
+
+            
             
             lexeme = new Lexeme('terminal');
 
@@ -1096,6 +1148,8 @@ BaseIterator.prototype = {
             else {
                 literal = map.symbol[name];
             }
+
+            
             
             lexeme.name = literal;
             lexeme.symbol = name;
@@ -1108,6 +1162,9 @@ BaseIterator.prototype = {
             
             // found shift state
             ref = states[state];
+
+            //console.log("token accepted! ", token, name, ' shift? ', ref);
+
             if (name in ref) {
                 return 2;
             }
@@ -1142,6 +1199,8 @@ BaseIterator.prototype = {
         // do not return "$" token
         me.returns = name !== map.endSymbol;
         me.params = me.nextTokenIndex;
+
+        //console.log("shift from ! ", state, lexeme.value, " to ", me.pstate);
         
         return 1;
 
@@ -1170,6 +1229,8 @@ BaseIterator.prototype = {
         created.symbol = name;
         created.rule = lookup[reduce[2]];
         last = null;
+        
+        //console.log("reduce count? ", params, " from ", reduce);
         
         for (; l--;) {
             item = buffer[--bl];
@@ -1239,8 +1300,9 @@ BaseIterator.prototype = {
         
         name = lexeme.symbol;
         me.pstate = state;
-        
+       
         // shift
+        //console.log('shift? ', name, 'lexeme', lexeme, ' in ', ref);
         if (name in ref) {
             return 1;
         
@@ -1334,6 +1396,10 @@ BaseIterator.prototype = {
             completed = me.completed,
             returns = false;
         var state, params, result, ref, current;
+
+        if (!me.ready) {
+            throw new Error("Iterator is not yet ready, nothing to Parse.");
+        }
 
         // reset current
         if (!completed) {

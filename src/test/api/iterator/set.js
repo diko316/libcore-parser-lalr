@@ -21,6 +21,8 @@ describe('Base Iterator must have set(subject:String) method that ' +
                 }
                 
                 expect(createIterator).not.toThrow();
+
+                expect(iterator.error).toBe(null);
                 
             });
         

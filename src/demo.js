@@ -296,7 +296,7 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 
 
 
-
+console.log(iterator);
 
 
 

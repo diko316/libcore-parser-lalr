@@ -73,6 +73,8 @@ describe('Base Iterator must have next() method that returns '+
                     name: '$end',
                     reduceCount: 1
                 }));
+
+                expect(iterator.error).toBe(null);
                 
                 
             });
