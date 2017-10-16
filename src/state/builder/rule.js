@@ -42,7 +42,7 @@ export
             isArray = array,
             isTerm = isTerminal;
 
-        var c, l, rl, rule, lexeme, ruleMask, terminals;
+        var c, l, rl, rule, lexeme, ruleMask, terminals, isTerminalToken;
 
         for (c = -1, l = definitions.length; l--;) {
             rule = definitions[++c];
@@ -70,21 +70,27 @@ export
                     }
 
                     lexeme = '/' + lexeme.source + '/';
+                    isTerminalToken = true;
                 }
                 else if (!isString(lexeme)) {
                     throw new Error("Invalid Grammar rule declared in " + name);
                 }
+                else {
+                    isTerminalToken = isTerm(lexeme);
+                }
 
-                ruleMask[rl] = registry.hashLexeme(lexeme);
-                if (isTerm(lexeme)) {
+                
+                //console.log("hashed! ", ruleMask[rl]);
+                ruleMask[rl] = registry.map.generateSymbol(lexeme);//registry.hashLexeme(lexeme);
+
+                if (isTerminalToken) {
                     terminals[rl] = true;
                 }
+                
             }
 
             // define states from ruleMask
             registry.registerRule(name, ruleMask, terminals);
-            //console.log(name, " ruleMask: ", ruleMask);
-
 
         }
 

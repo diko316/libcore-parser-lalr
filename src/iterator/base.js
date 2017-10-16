@@ -354,6 +354,10 @@ BaseIterator.prototype = {
             returns = false;
         var state, params, result, ref, current;
 
+        if (!me.ready) {
+            throw new Error("Iterator is not yet ready, nothing to Parse.");
+        }
+
         // reset current
         if (!completed) {
             delete me.current;

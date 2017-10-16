@@ -59,7 +59,7 @@ StateMap.prototype = {
     createPointer: function (id, token, target) {
         var state = this.createState(id);
 
-        state[this.generateSymbol(token)] = target;
+        state[token] = target;
 
         return state;
 
@@ -77,8 +77,8 @@ StateMap.prototype = {
         }
     
         // create symbol
-        //id = 's>' + (++this.symbolGen);
-        id = name;
+        id = 's' + (++this.symbolGen).toString(16);
+        //id = name;
     
         lookup[access] = id;
         symbols[id] = name;
@@ -97,7 +97,7 @@ StateMap.prototype = {
             return lookup[access];
         }
 
-        id = 'r>' + (++this.reduceGen);
+        id = 'r' + (++this.reduceGen).toString(16);
 
         lookup[access] = id;
         all[id] = [name, params, ruleIndex];
@@ -217,10 +217,10 @@ StateMap.prototype = {
                         'Invalid "start" state in definition parameter.');
         }
         
-        anchors = definition.anchors;
-        if (!isObject(anchors)) {
-            throw new Error('Invalid "anchors" states in definition parameter.');
-        }
+        // anchors = definition.anchors;
+        // if (!isObject(anchors)) {
+        //     throw new Error('Invalid "anchors" states in definition parameter.');
+        // }
         
         ends = definition.ends;
         if (!isObject(anchors)) {
@@ -250,7 +250,7 @@ StateMap.prototype = {
         this.root = root;
         this.start = start;
         this.states = states;
-        this.anchors = anchors;
+        //this.anchors = anchors;
         this.ends = ends;
         this.reducers = reducers;
         this.exclude = exclude;
@@ -278,7 +278,7 @@ StateMap.prototype = {
                 root: this.root,
                 start: this.start,
                 states: this.states,
-                anchors: this.anchors,
+                //anchors: this.anchors,
                 reducers: this.reducers,
                 ends: this.ends,
                 exclude: list,

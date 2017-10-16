@@ -29,6 +29,10 @@ function Registry(map, tokenizer) {
     this.symbol = {};
     this.lookup = {};
 
+    this.stateTagIdGen = 0;
+    this.stateTagId = {};
+    this.stateTagIdLookup = {};
+
     
 
 }
@@ -38,6 +42,29 @@ Registry.prototype = {
 
     startRule: null,
     rules: null,
+
+    hashState: function (name) {
+        var lookup = this.stateTagIdLookup,
+            access = ':' + name;
+        var id;
+
+        if (access in lookup) {
+            return lookup[access];
+        }
+
+        id = 't' + (++this.stateTagIdGen).toString(16);
+        lookup[access] = id;
+        this.stateTagId[id] = name;
+
+        return id;
+
+    },
+
+    lookupState: function (id) {
+        var list = this.stateTagId;
+        
+        return id in list ? list[id] : null;
+    },
 
     hashLexeme: function (name) {
         
@@ -51,9 +78,11 @@ Registry.prototype = {
         }
     
         // create symbol
-        //id = '>' + (++this.symbolGen);
+        //id = 'rhash>' + (++this.symbolGen);
         //id = name.replace(/[^a-zA-Z0-9]/, 'x');
         id = name;
+        //id = this.map.generateSymbol(name);
+
     
         lookup[access] = id;
         symbols[id] = name;
@@ -78,12 +107,14 @@ Registry.prototype = {
     registerTerminal: function (terminal, name) {
         var lookup = this.terminalLookup,
             names = this.terminals,
-            access = '/' + terminal.source + '/';
+            access = this.map.generateSymbol('/' + terminal.source + '/');
         var list;
 
         if (!name) {
             name = access;
         }
+
+        //console.log("registering terminal ", name);
 
         // allow register
         if (!(access in lookup)) {
@@ -125,7 +156,8 @@ Registry.prototype = {
             rl = 0,
             c = -1,
             total = mask.length,
-            l = total + 1;
+            l = total + 1,
+            map = this.map;
         var items, id, lexeme, list, index;
 
         if (!(name in productions)) {
@@ -145,7 +177,7 @@ Registry.prototype = {
 
             items = mask.slice(0);
             items.splice(c, 0, '.');
-            id = items.join(' ');
+            id = this.hashState(items.join(' '));
 
             if (id in states) {
                 throw new Error("Duplicate Grammar Rule found in " + name);

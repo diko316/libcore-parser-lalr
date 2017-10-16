@@ -265,15 +265,17 @@ var iterator = parser.iterator(),
     ol = 0;
 var lexeme;
 
+console.log(parser.map);
+
 //console.log(parser);
 
-// iterator.set('Buang = (Chaching = Buang.Buang)');
+ //iterator.set('Buang = (Chaching = Buang.Buang)');
 
-// iterator.set('Buang = 2 * Buang(4)');
+//iterator.set('Buang = 2 * Buang(4)');
 // iterator.set('2 * Buang');
 // iterator.set('Buang(4)');
 
-iterator.set('Buang + 1 * 2');
+iterator.set('Chaching = Buang + 1 * 2');
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     output[ol++] = {
@@ -281,6 +283,7 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
         type: lexeme.type,
         reduceCount: lexeme.reduceCount
     };
+
     console.log(lexeme.name,
                 lexeme.value,
                 lexeme.reduceCount);
@@ -292,7 +295,7 @@ for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
 
 
 
-console.log(iterator);
+
 
 
 
