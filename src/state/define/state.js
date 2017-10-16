@@ -1,5 +1,6 @@
 'use strict';
 
+import List from "./list.js";
 
 function State(registry, id) {
     var list = registry.vstates;
@@ -13,9 +14,9 @@ function State(registry, id) {
     this.registry = registry;
     this.tags = {};
     this.tagNames = [];
-    this.pointer = 
-        this.rparent = null;
-
+    this.pointer = new List();
+    this.rparent = null;
+    this.recursedAs = {};
     
 }
 
@@ -24,13 +25,9 @@ State.prototype = {
     registry: null,
     constructor: State,
 
-    tag: function (id, anchored) {
+    tag: function (id) {
         var list = this.tags,
             names = this.tagNames;
-
-        if (anchored) {
-            console.log("anchored! ", id);
-        }
 
         if (!(id in list)) {
             list[id] = true;
@@ -44,8 +41,27 @@ State.prototype = {
         return id in this.tags;
     },
 
+    setRecursed: function (production) {
+        var access = ':' + production,
+            list = this.recursedAs;
+
+        if (!(access in list)) {
+            list[access] = true;
+        }
+
+        return this;
+    },
+
+    isRecursed: function (production) {
+        var access = ':' + production,
+            list = this.recursedAs;
+
+        return access in list;
+    },
+
     findRecursion: function (id) {
-        var parent = this;
+        var me = this,
+            parent = me.rparent;
 
         for (; parent; parent = parent.rparent) {
             if (parent.hasTag(id)) {
@@ -56,41 +72,30 @@ State.prototype = {
     },
 
     pointed: function (token) {
-        var pointer = this.pointer;
+        var pointer = this.pointer.first;
+        var item;
 
-        for (; pointer; pointer = pointer.next) {
-            if (pointer.token === token) {
-                return pointer;
+        for (; pointer; pointer = pointer[0]) {
+            item = pointer[1];
+            if (item[1] === token) {
+                return item[0];
             }
         }
+        
         return null;
     },
 
     pointTo: function (token, state) {
-        var last = this.pointer,
-            pointer = {
-                token: token,
-                to: state,
-                next: null
-            };
-
-        if (last) {
-            for (; last.next; last = last.next) { }
-            last.next = pointer;
-        }
-        else {
-            this.pointer = pointer;
-        }
-
+        this.pointer.push([state, token]);
         return state;
     },
 
     point: function (token, recurseState) {
-        var pointer = this.pointed(token);
+        var pointed = this.pointed(token);
         var newState;
 
         // create
-        if (!pointer) {
+        if (!pointed) {
             newState = new State(this.registry);
             newState.rparent = recurseState;
 
@@ -98,7 +103,7 @@ State.prototype = {
 
         }
 
-        return pointer.to;
+        return pointed;
     }
 };
 

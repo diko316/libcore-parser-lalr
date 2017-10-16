@@ -81,7 +81,7 @@ function build(root, map, tokenizer, definitions, exclude) {
     if (isArray(exclude)) {
         excludes = [];
 
-        console.log("excludes! ", exclude);
+        //console.log("excludes! ", exclude);
         for (c = -1, l = exclude.length; l--;) {
             definition = exclude[++c];
             if (!isRegex(definition)) {

@@ -25,21 +25,21 @@ function define(registry) {
         pending = new Queue('pending');
 
     var item, rules, rule, rindex, rlen, lexemes, tokens,
-        id, token, lindex, llen, params,
+        id, token, lindex, llen,
         state, production, recursion, enqueue,
-        ruleState, isRuleState, tagged,
-        target, pointed,
+        ruleState, tagged,
+        pointed, target,
         
         states, pointer, c, l;
 
-    var limit = 100;
+    //var limit = 1000;
 
     queue.push([start, map.augmentedRoot]);
 
     for (; defineState;) {
-        if (!--limit) {
-            break;
-        }
+        // if (!--limit) {
+        //     break;
+        // }
 
         switch (defineState) {
         case STATE_START:
@@ -48,14 +48,20 @@ function define(registry) {
             production = item[1];
             ruleState = item[0];
 
+            // go to next
+            if (ruleState.isRecursed(production)) {
+                defineState = STATE_END_RULES;
+                break;
+            }
+
+            ruleState.setRecursed(production);
             rules = registry.getRules(production);
             lexemes = rules[1];
             rules = rules[0];
             rindex = -1;
             rlen = rules.length;
-            
-
             defineState = STATE_RUN_RULES;
+            
 
         /* falls through */
         case STATE_RUN_RULES:
@@ -71,87 +77,57 @@ function define(registry) {
 
         /* falls through */
         case STATE_START_RULE:
-            lindex = 0;
+            lindex = -1;
             llen = tokens.length;
 
             id = rule[0];
             token = tokens[0];
             state = ruleState;
 
-            // find recursion
-            target = state.findRecursion(id);
-
-
-            // no recursion then proceed to define lexeme
-            if (!target) {
-                defineState = STATE_DEFINE_LEXEME;
+            if (state.hasTag(id)) {
+                defineState = STATE_RUN_RULES;
                 break;
             }
-
-        /* falls through */
-        case STATE_RUN_RECURSION:
-            tagged = state.hasTag(id);
-            if (!tagged) {
-                state.tag(id);
-            }
-
-            // find pointed target
-            pointed = state.pointed(token);
-            if (!pointed) {
-                state.pointTo(token, target.pointed(token).to);
-            }
-
-            recursion = registry.isRecursed(id);
-            if (recursion && !tagged) {
-                queue.push([state, recursion]);  
-            }
-
-            // follow lexeme rules without recursion
-            if (pointed) {
-                for (; llen--;) {
-                    id = rule[lindex];
-                    token = tokens[lindex++];
-                    state.tag(id);
-                    state = state.point(token, ruleState);
+            
+            target = state.findRecursion(id, token);
+            if (target) {
+                pointed = target.pointed(token);
+                if (pointed && !state.pointed(token)) {
+                    state.pointTo(token, pointed);
                 }
-                defineState = STATE_DEFINE_ENDER;
             }
-            else {
-                defineState = STATE_RUN_RULES;
-            }
-            break;
 
-        case STATE_FOLLOW_RECURSION:
-            break;
+            defineState = STATE_DEFINE_LEXEME;
 
         /* falls through */
         case STATE_DEFINE_LEXEME:
 
-            id = rule[lindex];
-            state.tag(id);
+            id = rule[++lindex];
+            tagged = state.hasTag(id);
+            
 
-            isRuleState = state === ruleState;
-
-            if (!isRuleState) {
-                state.rparent = ruleState;
-            }
-
-            if (!(llen--)) {
-                defineState = STATE_DEFINE_ENDER;
+            // dont redefine, go to next rule
+            if (!(llen--) || tagged) {
+                defineState = tagged ?
+                                STATE_RUN_RULES : STATE_DEFINE_ENDER;
                 break;
             }
-            
-            
-            token = tokens[lindex++];
+
+            //console.log("define id! ", id);
+
+            token = tokens[lindex];
 
             // recursion
             recursion = registry.isRecursed(id);
             if (recursion) {
-                (isRuleState ?
+                (state === ruleState ?
                     queue : pending).push([state, recursion]);
             }
 
-            state = state.point(token, ruleState);
+            state.tag(id);
+            pointed = state.pointed(token);
+            state = pointed || state.point(token, ruleState);
+
             break;
 
         /* falls through */
@@ -170,21 +146,27 @@ function define(registry) {
             }
 
             defineState = enqueue ? STATE_START : STATE_END;
+            // if (!enqueue) {
+            //     console.log("ended! iterations: ", 1000 - limit);
+            // }
         }
         
     }
+
+    //console.log("iterations: ", 1000 - limit);
 
     // generate state map
     states = registry.vstates;
     for (c = - 1, l = states.length; l--;) {
         state = states[++c];
         id = state.id;
-        pointer = state.pointer;
+        pointer = state.pointer.first;
         map.createState(id);
 
         // apply pointer
-        for (; pointer; pointer = pointer.next) {
-            map.createPointer(id, pointer.token, pointer.to.id);
+        for (; pointer; pointer = pointer[0]) {
+            item = pointer[1];
+            map.createPointer(id, item[1], item[0].id);
         }
 
         // set end
@@ -198,25 +180,27 @@ function define(registry) {
 
     
     // generate report
-    var states = registry.vstates,
-        ends = registry.ends;
-    var c, l, state, pointer, end;
+    // var states = registry.vstates,
+    //     ends = registry.ends;
+    // var c, l, state, pointer, end;
 
-    for (c = -1, l = states.length; l--;) {
-        state = states[++c];
-        pointer = state.pointer;
-        if (!pointer) {
-            console.log('no transitions in ', state.id);
-        }
-        for (;pointer; pointer = pointer.next) {
-            target = pointer.to;
-            end = target.id in ends ?
-                    ' end: ' + ends[target.id].join(',') : '';
-            console.log(state.id, ':', pointer.token, '->', target.id, end);
-        }
-    }
-    console.log(registry.vstates);
-    console.log(queue, pending);
+    // for (c = -1, l = states.length; l--;) {
+    //     state = states[++c];
+    //     pointer = state.pointer.first;
+    //     if (!pointer) {
+    //         console.log('no transitions in ', state.id);
+    //     }
+    //     for (;pointer; pointer = pointer[0]) {
+    //         item = pointer[1];
+    //         target = item[0];
+    //         end = target.id in ends ?
+    //                 ' end: ' + ends[target.id].join(',') : '';
+
+    //         console.log(state.id, ':', item[1], '->', target.id, end);
+    //     }
+    // }
+    // console.log(registry.vstates);
+    // console.log(queue, pending);
     
 }
 
