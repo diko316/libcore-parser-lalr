@@ -83,10 +83,17 @@ function build(root, map, tokenizer, definitions, exclude) {
         //console.log("excludes! ", exclude);
         for (c = -1, l = exclude.length; l--;) {
             definition = exclude[++c];
-            if (!isRegex(definition)) {
+            if (isRegex(definition)) {
+                definition = registry.registerTerminal(definition);
+            }
+            else if (isString(definition)) {
+                definition = map.generateSymbol(definition);
+            }
+            else {
                 throw new Error("Invalid [exclude] pattern parameter.");
             }
-            excludes[c] = registry.registerTerminal(definition);
+            
+            excludes[c] = definition;
 
         }
 

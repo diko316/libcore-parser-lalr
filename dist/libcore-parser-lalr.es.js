@@ -564,6 +564,10 @@ function define$1(registry) {
 
             ruleState.setRecursed(production);
             rules = registry.getRules(production);
+            if (!rules) {
+                throw new Error("Production is not defined: " +
+                                map.lookupSymbol(production));
+            }
             lexemes = rules[1];
             rules = rules[0];
             rindex = -1;
@@ -665,6 +669,7 @@ function define$1(registry) {
 
     // generate state map
     states = registry.vstates;
+    console.log("generated states: ", states.length);
     for (c = - 1, l = states.length; l--;) {
         state = states[++c];
         id = state.id;
@@ -996,10 +1001,17 @@ function build(root, map, tokenizer, definitions, exclude) {
         //console.log("excludes! ", exclude);
         for (c = -1, l = exclude.length; l--;) {
             definition = exclude[++c];
-            if (!isRegex(definition)) {
+            if (isRegex(definition)) {
+                definition = registry.registerTerminal(definition);
+            }
+            else if (isString(definition)) {
+                definition = map.generateSymbol(definition);
+            }
+            else {
                 throw new Error("Invalid [exclude] pattern parameter.");
             }
-            excludes[c] = registry.registerTerminal(definition);
+            
+            excludes[c] = definition;
 
         }
 

@@ -54,6 +54,10 @@ function define(registry) {
 
             ruleState.setRecursed(production);
             rules = registry.getRules(production);
+            if (!rules) {
+                throw new Error("Production is not defined: " +
+                                map.lookupSymbol(production));
+            }
             lexemes = rules[1];
             rules = rules[0];
             rindex = -1;
@@ -155,6 +159,7 @@ function define(registry) {
 
     // generate state map
     states = registry.vstates;
+    console.log("generated states: ", states.length);
     for (c = - 1, l = states.length; l--;) {
         state = states[++c];
         id = state.id;
