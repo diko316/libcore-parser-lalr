@@ -508,15 +508,9 @@ parser = Parser.define("Joqx",
                             ["Updatable", "Arguments"]
                         ],
 
-    // "Callable",         [
-    //                         "Primary",
-                            
-                            
-    //                     ],
-
     "Updatable",        [
-                            "identifier",
                             "Primary",
+                            "identifier",
                             ["Updatable", ".", "identifier"],
                             ["Updatable", "[", "Javascript", "]"]
                         ],

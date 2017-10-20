@@ -17,31 +17,46 @@ The following lines defines a parser declaring grammar rules composed of tokens 
 
 ```javascript
 var lalr = require("libcore-parser-lalr");
-var parser = lalr.define("Expr", // root grammar rule
-                [ // grammar rules
-                    "Expr", [
-                                "Add"				// Expr1 rule
+var parser = lalr.define("Expr", // Root production
+                [
+                    // Lexical grammar
+                    "+",    [
+                                /\+/
                             ],
-                    
+
+                    "*",    [
+                                /\*/
+                            ],
+
+                    "(",    [/\(/],
+
+                    ")",    [/\)/],
+
+                    "number",   [/(\+|\-)?[0-9]+(\.[0-9]+)?/],
+
+                    "whitespace", [/[ \r\n\t]+/],
+
+                    // Grammar rules
+                    "Expr", [
+                                "Add"                   // Expr1 rule
+                            ],
+
                     "Add",  [
-                                ["Add", /\+/, "Mul"],	// Add1 rule
-                                "Mul",				// Add2 rule
+                                "Mul",                  // Add1 rule
+                                ["Add", "+", "Mul"],    // Add2 rule
                             ],
                     "Mul",  [
-                                ["Mul", /\*/, "Unit"], 	// Mul1 rule
-                                "Unit"				// Mul2 rule
+                                "Unit"                  // Mul1 rule
+                                ["Mul", "*", "Unit"],   // Mul2 rule
                             ],
                     "Unit", [
-                                "Number",			// Unit1 rule
-                                [/\(/, "Expr", /\)/]		// Unit2 rule
-                            ],
-                    "Number", [
-                                /(\+|\-)?[0-9]+(\.[0-9]+)?/	// Number1 rule
+                                "number",               // Unit1 rule
+                                ["(", "Expr", ")"]      // Unit2 rule
                             ]
                 ],
                 // ignore these tokens
                 [
-                        /[ \r\n\t]+/
+                        "whitespace"
                 ]);
 
 ```
@@ -57,10 +72,10 @@ iterator.set('1 + 2 * 3');
 
 // iterate
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
-    console.log(lexeme.name,	// grammar rule name
-                lexeme.rule,			// grammar rule id (e.g. Mul1, Unit2)
-                lexeme.value,		// lexeme value - you update this with lexeme.update("value")
-                lexeme.reduceCount,	// number of lexemes popped to reduce
+    console.log(lexeme.name,            // grammar rule name
+                lexeme.rule,            // grammar rule id (e.g. Mul1, Unit2)
+                lexeme.value,           // lexeme value - you update this with lexeme.update("value")
+                lexeme.reduceCount,     // number of lexemes popped to reduce
                 lexeme);
 }
 ```

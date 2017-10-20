@@ -6,7 +6,7 @@
 
 Tokenizer = Tokenizer && Tokenizer.hasOwnProperty('default') ? Tokenizer['default'] : Tokenizer;
 
-function StateMap() {
+function StateMap(debug) {
     var start = "$start",
         end = "$end",
         tokenEnd = "$",
@@ -29,6 +29,7 @@ function StateMap() {
 
     this.reduceLookup = {};
     this.reducers = {};
+    this.debugMode = debug === true;
 
     this.augmentedRoot = this.generateSymbol(end);
     this.endSymbol = this.generateSymbol(tokenEnd);
@@ -40,6 +41,7 @@ function StateMap() {
 StateMap.prototype = {
     stateGen: 0,
     rawStates: null,
+    debugMode: false,
     
     constructor: StateMap,
 
@@ -73,7 +75,9 @@ StateMap.prototype = {
         }
     
         // create symbol
-        id = 's' + (++this.symbolGen).toString(16);
+        id = this.debugMode ?
+                '[' + name + ']' :
+                's' + (++this.symbolGen).toString(16);
         //id = name;
     
         lookup[access] = id;
@@ -93,7 +97,9 @@ StateMap.prototype = {
             return lookup[access];
         }
 
-        id = 'r' + (++this.reduceGen).toString(16);
+        id = this.debugMode ?
+                '[' + name + ':' + params + '>' + ruleIndex + ']' :
+                '<' + (++this.reduceGen).toString(16);
 
         lookup[access] = id;
         all[id] = [name, params, ruleIndex];
@@ -132,7 +138,8 @@ StateMap.prototype = {
             current = all[ends[state]];
             if (current[0] !== name || current[1] !== params) {
                 throw new Error("Reduce conflict found " +
-                                current[0] + ' ! <- ' + name);
+                                this.lookupSymbol(current[0]) + ' ! <- ' +
+                                this.lookupSymbol(name));
             }
         }
         else {
@@ -142,7 +149,7 @@ StateMap.prototype = {
     },
     
     reset: function () {
-        this.constructor();
+        this.constructor(this.debugMode);
     },
 
     finalize: function() {
@@ -535,14 +542,16 @@ function define$1(registry) {
         defineState = STATE_START,
         start = new StateClass(registry, map.start),
         queue = new Queue('queue'),
-        pending = new Queue('pending');
+        pending = new Queue('pending'),
+        processed = {},
+        iterations = 0;
 
     var item, rules, rule, rindex, rlen, lexemes, tokens,
         id, token, lindex, llen,
         state, production, recursion, enqueue,
         ruleState, tagged,
         pointed, target,
-        
+        pid,
         states, pointer, c, l;
 
     //var limit = 1000;
@@ -550,6 +559,7 @@ function define$1(registry) {
     queue.push([start, map.augmentedRoot]);
 
     for (; defineState;) {
+        iterations++;
         // if (!--limit) {
         //     break;
         // }
@@ -636,14 +646,17 @@ function define$1(registry) {
 
             // recursion
             recursion = registry.isRecursed(id);
-            if (recursion) {
+            pid = state.id + ':' + recursion;
+
+            // dont send to pending if already processed
+            if (recursion && !(pid in processed)) {
+                processed[pid] = true; 
                 (state === ruleState ?
                     queue : pending).push([state, recursion]);
             }
 
             state.tag(id);
-            pointed = state.pointed(token);
-            state = pointed || state.point(token, ruleState);
+            state = state.pointed(token) || state.point(token, ruleState);
 
             break;
 
@@ -670,11 +683,15 @@ function define$1(registry) {
         
     }
 
+    if (map.debugMode) {
+        console.log("define iterations: ", iterations);
+        console.log("generated states: ", registry.vstates.length);
+    }
     //console.log("iterations: ", 1000 - limit);
 
     // generate state map
     states = registry.vstates;
-    console.log("generated states: ", states.length);
+    
     for (c = - 1, l = states.length; l--;) {
         state = states[++c];
         id = state.id;
@@ -768,7 +785,10 @@ Registry.prototype = {
             return lookup[access];
         }
 
-        id = 't' + (++this.stateTagIdGen).toString(16);
+        id = this.map.debugMode ?
+                ':' + name :
+                't' + (++this.stateTagIdGen).toString(16);
+
         lookup[access] = id;
         this.stateTagId[id] = name;
 
@@ -794,11 +814,9 @@ Registry.prototype = {
         }
     
         // create symbol
-        //id = 'rhash>' + (++this.symbolGen);
-        //id = name.replace(/[^a-zA-Z0-9]/, 'x');
-        id = name;
-        //id = this.map.generateSymbol(name);
-
+        id = this.map.debugMode ?
+                '[' + name + ']' :
+                '>' + (++this.symbolGen).toString(16);
     
         lookup[access] = id;
         symbols[id] = name;
@@ -829,8 +847,6 @@ Registry.prototype = {
         if (!name) {
             name = access;
         }
-
-        //console.log("registering terminal ", name);
 
         // allow register
         if (!(access in lookup)) {
@@ -897,7 +913,9 @@ Registry.prototype = {
             id = this$1.hashState(name + ' -> ' + items.join(' '));
 
             if (id in states) {
-                throw new Error("Duplicate Grammar Rule found in " + name);
+                throw new Error("Duplicate Grammar Rule found " +
+                            this$1.lookupState(id) + " in production: " +
+                            this$1.map.lookupSymbol(name));
             }
 
             rules[rl++] = id;
@@ -928,6 +946,7 @@ Registry.prototype = {
 
     setEnd: function (id, production, params, ruleId) {
         var ends = this.ends,
+            map = this.map,
             state = this.vstateLookup[id];
 
         if (!(id in ends)) {
@@ -935,7 +954,8 @@ Registry.prototype = {
         }
         else if (ends[id][0] !== production) {
             throw new Error("Reduce conflict! " + state.id +
-                                ":" + ends[id][0] + ' <- ' + production);
+                                ":" + map.lookupSymbol(ends[id][0]) + ' <- ' +
+                                map.lookupSymbol(production));
         }
         
     },
@@ -1510,10 +1530,12 @@ function get(name) {
 
 register(defaultIteratorName, BaseIterator);
 
+var debugMode = false;
+
 function Parser(root, definition, exclude) {
     
     this.tokenizer = new Tokenizer();
-    this.map = new StateMap();
+    this.map = new StateMap(debugMode);
     
     if (arguments.length) {
         this.define(root, definition, exclude);
@@ -1666,6 +1688,11 @@ Parser.prototype = {
     }
 };
 
+
+function debug(isDebugMode) {
+        debugMode = isDebugMode !== false;
+    }
+
 function define(root, definitions, exclusions) {
         return new Parser(root, definitions, exclusions);
     }
@@ -1716,6 +1743,7 @@ function isParser(parser) {
 //};
 
 var moduleApi$1 = Object.freeze({
+	debug: debug,
 	Parser: Parser,
 	define: define,
 	load: load,
@@ -1725,6 +1753,7 @@ var moduleApi$1 = Object.freeze({
 });
 
 exports['default'] = moduleApi$1;
+exports.debug = debug;
 exports.Parser = Parser;
 exports.define = define;
 exports.load = load;
