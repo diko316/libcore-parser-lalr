@@ -211,7 +211,7 @@ simple = false;
 
 //subject = 'Buang = 2 * Buang(4)';
 // subject = '2 * Buang';
-subject = 'new Buang.test';
+subject = 'Buang.test().name';
 
 //subject = 'Chaching = Buang + 1 * 2 -> test';
 
@@ -503,9 +503,16 @@ parser = Parser.define("Joqx",
                             "Array",
                             "Object",
                             "Void",
-                            "Group"
-                            
+                            "Group",
+                            ["new", "Updatable"],
+                            ["Updatable", "Arguments"]
                         ],
+
+    // "Callable",         [
+    //                         "Primary",
+                            
+                            
+    //                     ],
 
     "Updatable",        [
                             "identifier",
@@ -514,14 +521,10 @@ parser = Parser.define("Joqx",
                             ["Updatable", "[", "Javascript", "]"]
                         ],
 
-    "Callable",         [
-                            "Updatable",
-                            ["Updatable", "Arguments"],
-                            ["new", "Callable"]
-                        ],
+    
 
     "PostFix",          [
-                            "Callable",
+                            "Updatable",
                             ["Updatable", "++"],
                             ["Updatable", "--"]
                         ],
