@@ -11,7 +11,6 @@ function Registry(map, tokenizer) {
     this.map = map;
 
     this.productions = {};
-    this.productionNames = [];
     this.lexemes = {};
 
     this.stateIndex = {};
@@ -151,7 +150,6 @@ Registry.prototype = {
         var states = this.stateIndex,
             recursions = this.recursions,
             productions = this.productions,
-            names = this.productionNames,
             lexemes = this.lexemes,
             ruleIndex = this.rules,
             rules = [],
@@ -164,7 +162,6 @@ Registry.prototype = {
         if (!(name in productions)) {
             productions[name] = [];
             lexemes[name] = [];
-            names[names.length] = name;
         }
 
         list = productions[name];

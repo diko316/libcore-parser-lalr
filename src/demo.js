@@ -200,11 +200,13 @@ import Parser from "./index.js";
 var simple = true,
     debug = true,
     testImport = false,
+    tryParse = true,
     subject = 'Buang.diko';
 var parser;
 
-simple = false;
-debug = false;
+//simple = false;
+//debug = false;
+tryParse = false;
 
 //console.log(parser);
 
@@ -227,10 +229,6 @@ if (simple) {
 
 parser = Parser.define("Expr",
 [
-    "Expr", [
-                "Assign"
-            ],
-
     "buang", [
                 /Buang/,
                 /Chaching/
@@ -243,6 +241,10 @@ parser = Parser.define("Expr",
     "+",    [/\+/],
 
     "*",    [/\*/],
+
+    "Expr", [
+                "Assign"
+            ],
     
     "Basic",  [
                 "buang",
@@ -251,10 +253,10 @@ parser = Parser.define("Expr",
             ],
 
     "Operand",  [
-                "Basic",
-                ["Basic", "Arguments"],
-                ["Operand", /\./, "Basic"],
-                ["Operand", /\[/, "Expr", /\]/]
+                "Basic"
+                // ["Basic", "Arguments"],
+                // ["Operand", /\./, "Basic"],
+                // ["Operand", /\[/, "Expr", /\]/]
             ],
 
     "Arguments",[
@@ -653,36 +655,22 @@ if (testImport) {
 }
 
 
-var iterator = parser.iterator(),
-    output = [],
-    ol = 0;
-var lexeme;
+var lexeme, iterator;
 
-console.log(parser.map);
+if (tryParse) {
+    iterator = parser.iterator();
+    console.log(parser.map);
 
-iterator.set(subject);
+    iterator.set(subject);
 
-for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
-    output[ol++] = {
-        name: lexeme.name,
-        type: lexeme.type,
-        reduceCount: lexeme.reduceCount
-    };
+    for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
+        console.log(lexeme.name,
+                    lexeme.value,
+                    lexeme.reduceCount);
+    }
 
-    console.log(lexeme.name,
-                lexeme.value,
-                lexeme.reduceCount);
-    //console.log('-----------', lexeme.name, lexeme.value);
-
+    console.log(iterator);
 }
-
-// //console.log(JSON.stringify(output));
-
-
-
-
-console.log(iterator);
-
 
 
 
