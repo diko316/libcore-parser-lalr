@@ -5,9 +5,13 @@ import {
             object
         } from "libcore";
         
-import Parser from "./parser.js";
+import Parser,
+        { debug } from "./parser.js";
 
-export { Parser };
+export {
+            debug,
+            Parser
+        };
 
 export {
             Base as Iterator,

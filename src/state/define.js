@@ -20,14 +20,16 @@ function define(registry) {
         defineState = STATE_START,
         start = new StateClass(registry, map.start),
         queue = new Queue('queue'),
-        pending = new Queue('pending');
+        pending = new Queue('pending'),
+        processed = {},
+        iterations = 0;
 
     var item, rules, rule, rindex, rlen, lexemes, tokens,
         id, token, lindex, llen,
         state, production, recursion, enqueue,
         ruleState, tagged,
         pointed, target,
-        
+        pid,
         states, pointer, c, l;
 
     //var limit = 1000;
@@ -35,6 +37,7 @@ function define(registry) {
     queue.push([start, map.augmentedRoot]);
 
     for (; defineState;) {
+        iterations++;
         // if (!--limit) {
         //     break;
         // }
@@ -121,14 +124,17 @@ function define(registry) {
 
             // recursion
             recursion = registry.isRecursed(id);
-            if (recursion) {
+            pid = state.id + ':' + recursion;
+
+            // dont send to pending if already processed
+            if (recursion && !(pid in processed)) {
+                processed[pid] = true; 
                 (state === ruleState ?
                     queue : pending).push([state, recursion]);
             }
 
             state.tag(id);
-            pointed = state.pointed(token);
-            state = pointed || state.point(token, ruleState);
+            state = state.pointed(token) || state.point(token, ruleState);
 
             break;
 
@@ -155,11 +161,15 @@ function define(registry) {
         
     }
 
+    if (map.debugMode) {
+        console.log("define iterations: ", iterations);
+        console.log("generated states: ", registry.vstates.length);
+    }
     //console.log("iterations: ", 1000 - limit);
 
     // generate state map
     states = registry.vstates;
-    console.log("generated states: ", states.length);
+    
     for (c = - 1, l = states.length; l--;) {
         state = states[++c];
         id = state.id;

@@ -18,11 +18,12 @@ import {
             defaultIterator
         } from "./iterator.js";
 
+var debugMode = false;
 
 function Parser(root, definition, exclude) {
     
     this.tokenizer = new Tokenizer();
-    this.map = new StateMap();
+    this.map = new StateMap(debugMode);
     
     if (arguments.length) {
         this.define(root, definition, exclude);
@@ -177,3 +178,8 @@ Parser.prototype = {
 
 
 export default Parser;
+
+export
+    function debug(isDebugMode) {
+        debugMode = isDebugMode !== false;
+    }

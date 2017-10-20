@@ -52,7 +52,10 @@ Registry.prototype = {
             return lookup[access];
         }
 
-        id = 't' + (++this.stateTagIdGen).toString(16);
+        id = this.map.debugMode ?
+                ':' + name :
+                't' + (++this.stateTagIdGen).toString(16);
+
         lookup[access] = id;
         this.stateTagId[id] = name;
 
@@ -78,11 +81,9 @@ Registry.prototype = {
         }
     
         // create symbol
-        //id = 'rhash>' + (++this.symbolGen);
-        //id = name.replace(/[^a-zA-Z0-9]/, 'x');
-        id = name;
-        //id = this.map.generateSymbol(name);
-
+        id = this.map.debugMode ?
+                '[' + name + ']' :
+                '>' + (++this.symbolGen).toString(16);
     
         lookup[access] = id;
         symbols[id] = name;
@@ -113,8 +114,6 @@ Registry.prototype = {
         if (!name) {
             name = access;
         }
-
-        //console.log("registering terminal ", name);
 
         // allow register
         if (!(access in lookup)) {
@@ -179,7 +178,9 @@ Registry.prototype = {
             id = this.hashState(name + ' -> ' + items.join(' '));
 
             if (id in states) {
-                throw new Error("Duplicate Grammar Rule found in " + name);
+                throw new Error("Duplicate Grammar Rule found " +
+                            this.lookupState(id) + " in production: " +
+                            this.map.lookupSymbol(name));
             }
 
             rules[rl++] = id;
@@ -210,6 +211,7 @@ Registry.prototype = {
 
     setEnd: function (id, production, params, ruleId) {
         var ends = this.ends,
+            map = this.map,
             state = this.vstateLookup[id];
 
         if (!(id in ends)) {
@@ -217,7 +219,8 @@ Registry.prototype = {
         }
         else if (ends[id][0] !== production) {
             throw new Error("Reduce conflict! " + state.id +
-                                ":" + ends[id][0] + ' <- ' + production);
+                                ":" + map.lookupSymbol(ends[id][0]) + ' <- ' +
+                                map.lookupSymbol(production));
         }
         
     },

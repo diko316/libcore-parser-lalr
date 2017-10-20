@@ -197,13 +197,32 @@ import Parser from "./index.js";
 // console.log(parser);
 // console.log(parser.toJSON());
 
-var simple = true;
+var simple = true,
+    debug = true,
+    subject = 'Buang.diko';
+var parser;
 
 simple = false;
+//debug = false;
+
+//console.log(parser);
+
+ //subject = 'Buang = (Chaching = Buang.Buang)';
+
+//subject = 'Buang = 2 * Buang(4)';
+// subject = '2 * Buang';
+subject = 'new Buang.test';
+
+//subject = 'Chaching = Buang + 1 * 2 -> test';
+
+
+
+
+Parser.debug(debug);
 
 if (simple) {
 
-var parser = Parser.define("Expr",
+parser = Parser.define("Expr",
 [
     "Expr", [
                 "Assign"
@@ -469,43 +488,53 @@ parser = Parser.define("Joqx",
                         ],
 
 // Function Call
-    
-    "Primary",          [
-                            "identifier",
-
+    "Literal",          [
                             "this",
                             "boolean",
                             "null",
                             "undefined",
                             "string",
-
-                            "Number",
+                            "Number"
+                        ],
+    
+    "Primary",          [
+                            "Literal",
+                           
                             "Array",
                             "Object",
                             "Void",
-                            "Group",
-
-                            ["Primary", "Arguments"],
-                            ["new", "Primary"],
-                            ["Primary", ".", "identifier"],
-                            ["Primary", "[", "Javascript", "]"]
-                        ],
-
-    "PostFix",          [
-                            "Primary",
-                            ["Primary", "++"],
-                            ["Primary", "--"]
+                            "Group"
                             
                         ],
 
+    "Updatable",        [
+                            "identifier",
+                            "Primary",
+                            ["Updatable", ".", "identifier"],
+                            ["Updatable", "[", "Javascript", "]"]
+                        ],
+
+    "Callable",         [
+                            "Updatable",
+                            ["Updatable", "Arguments"],
+                            ["new", "Callable"]
+                        ],
+
+    "PostFix",          [
+                            "Callable",
+                            ["Updatable", "++"],
+                            ["Updatable", "--"]
+                        ],
+
     "Unary",            [
+                            
                             "PostFix",
-                            ["++", "PostFix"],
-                            ["--", "PostFix"],
+                            ["++", "Updatable"],
+                            ["--", "Updatable"],
                             ["+",  "Number"],
                             ["-", "Number"],
-                            ["typeof", "Primary"],
-                            ["!", "Primary"]
+                            ["typeof", "Unary"],
+                            ["!", "Unary"]
                         ],
 
     "Exponential",      [
@@ -575,17 +604,18 @@ parser = Parser.define("Joqx",
 
     "Assignment",       [
                             "Conditional",
-                            ["Primary", "=", "Assignment"],
-                            ["Primary", "**=", "Assignment"],
-                            ["Primary", "*=", "Assignment"],
-                            ["Primary", "/=", "Assignment"],
-                            ["Primary", "%=", "Assignment"],
-                            ["Primary", "+=", "Assignment"],
-                            ["Primary", "-=", "Assignment"]
+                            ["Updatable", "=", "Assignment"],
+                            ["Updatable", "**=", "Assignment"],
+                            ["Updatable", "*=", "Assignment"],
+                            ["Updatable", "/=", "Assignment"],
+                            ["Updatable", "%=", "Assignment"],
+                            ["Updatable", "+=", "Assignment"],
+                            ["Updatable", "-=", "Assignment"]
                         ],
 
     "Javascript",       [
-                            "Assignment"
+                            "Assignment",
+                            "Delete"
                         ],
 
 // Transform Redirection
@@ -618,15 +648,7 @@ var lexeme;
 
 console.log(parser.map);
 
-//console.log(parser);
-
- //iterator.set('Buang = (Chaching = Buang.Buang)');
-
-//iterator.set('Buang = 2 * Buang(4)');
-// iterator.set('2 * Buang');
-// iterator.set('Buang(4)');
-
-iterator.set('Chaching = Buang + 1 * 2 -> test');
+iterator.set(subject);
 
 for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
     output[ol++] = {

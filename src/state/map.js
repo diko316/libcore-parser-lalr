@@ -9,7 +9,7 @@ import {
             
         } from "libcore";
 
-function StateMap() {
+function StateMap(debug) {
     var start = "$start",
         end = "$end",
         tokenEnd = "$",
@@ -32,6 +32,7 @@ function StateMap() {
 
     this.reduceLookup = {};
     this.reducers = {};
+    this.debugMode = debug === true;
 
     this.augmentedRoot = this.generateSymbol(end);
     this.endSymbol = this.generateSymbol(tokenEnd);
@@ -43,6 +44,7 @@ function StateMap() {
 StateMap.prototype = {
     stateGen: 0,
     rawStates: null,
+    debugMode: false,
     
     constructor: StateMap,
 
@@ -76,7 +78,9 @@ StateMap.prototype = {
         }
     
         // create symbol
-        id = 's' + (++this.symbolGen).toString(16);
+        id = this.debugMode ?
+                '[' + name + ']' :
+                's' + (++this.symbolGen).toString(16);
         //id = name;
     
         lookup[access] = id;
@@ -96,7 +100,9 @@ StateMap.prototype = {
             return lookup[access];
         }
 
-        id = 'r' + (++this.reduceGen).toString(16);
+        id = this.debugMode ?
+                '[' + name + ':' + params + '>' + ruleIndex + ']' :
+                '<' + (++this.reduceGen).toString(16);
 
         lookup[access] = id;
         all[id] = [name, params, ruleIndex];
@@ -135,7 +141,8 @@ StateMap.prototype = {
             current = all[ends[state]];
             if (current[0] !== name || current[1] !== params) {
                 throw new Error("Reduce conflict found " +
-                                current[0] + ' ! <- ' + name);
+                                this.lookupSymbol(current[0]) + ' ! <- ' +
+                                this.lookupSymbol(name));
             }
         }
         else {
@@ -145,7 +152,7 @@ StateMap.prototype = {
     },
     
     reset: function () {
-        this.constructor();
+        this.constructor(this.debugMode);
     },
 
     finalize: function() {
