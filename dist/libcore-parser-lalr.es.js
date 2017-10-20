@@ -2,7 +2,7 @@ import { array, contains, method, number, object, regex, string } from 'libcore'
 import Tokenizer from 'libcore-tokenizer';
 
 function StateMap(debug) {
-    var start = "$start",
+    var start = "$",
         end = "$end",
         tokenEnd = "$",
         states = {};
@@ -72,9 +72,8 @@ StateMap.prototype = {
         // create symbol
         id = this.debugMode ?
                 '[' + name + ']' :
-                's' + (++this.symbolGen).toString(16);
-        //id = name;
-    
+                (++this.symbolGen).toString(36);
+
         lookup[access] = id;
         symbols[id] = name;
     
@@ -94,7 +93,7 @@ StateMap.prototype = {
 
         id = this.debugMode ?
                 '[' + name + ':' + params + '>' + ruleIndex + ']' :
-                '<' + (++this.reduceGen).toString(16);
+                (++this.reduceGen).toString(36);
 
         lookup[access] = id;
         all[id] = [name, params, ruleIndex];
@@ -420,7 +419,7 @@ List.prototype = {
 function State(registry, id) {
     var list = registry.vstates;
 
-    id = id || 's' + (++registry.vstateIdGen);
+    id = id || (++registry.vstateIdGen).toString(36);
     
     registry.vstateLookup[id] = 
         list[list.length] = this;
@@ -539,6 +538,8 @@ function define$1(registry) {
         queue = new Queue('queue'),
         pending = new Queue('pending'),
         processed = {},
+        endStateList = [],
+        esl = 0,
         iterations = 0;
 
     var item, rules, rule, rindex, rlen, lexemes, tokens,
@@ -546,12 +547,14 @@ function define$1(registry) {
         state, production, recursion, enqueue,
         ruleState, tagged,
         pointed, target,
-        pid,
+        pid, empties, redirectStates, emptyStatesByReducer, endState, reduceId,
+        redirected,
         states, pointer, c, l;
 
     //var limit = 1000;
 
     queue.push([start, map.augmentedRoot]);
+    esl = 0;
 
     for (; defineState;) {
         iterations++;
@@ -660,6 +663,7 @@ function define$1(registry) {
             id = rule[lindex];
             state.tag(id);
             registry.setEnd(state.id, production, lindex, id);
+            endStateList[esl++] = state;
             defineState = STATE_RUN_RULES;
             break;
         
@@ -684,28 +688,67 @@ function define$1(registry) {
     }
     //console.log("iterations: ", 1000 - limit);
 
+    //console.log(registry);
+
+
+
     // generate state map
     states = registry.vstates;
-    
+    empties = 0;
+    //var endstates = 0;
+    redirectStates = {};
+    emptyStatesByReducer = {};
+
+    // generate redirections to end states
+    for (; esl--;) {
+        state = endStateList[esl];
+
+        // no pointer! then this is a very good candidate
+        if (!state.pointer.first) {
+            id = state.id;
+            endState = registry.isEnd(id);
+            reduceId = map.generateReduceId(endState[0],
+                                            endState[1],
+                                            endState[2]);
+            // register as reduce state
+            if (!(reduceId in emptyStatesByReducer)) {
+                emptyStatesByReducer[reduceId] = id;
+            }
+            // create redirection
+            else {
+                redirectStates[id] = emptyStatesByReducer[reduceId];
+            }
+        }
+    }
+
     for (c = - 1, l = states.length; l--;) {
         state = states[++c];
         id = state.id;
         pointer = state.pointer.first;
-        map.createState(id);
 
-        // apply pointer
-        for (; pointer; pointer = pointer[0]) {
-            item = pointer[1];
-            map.createPointer(id, item[1], item[0].id);
+        if (pointer) {
+            map.createState(id);
+            for (; pointer; pointer = pointer[0]) {
+                item = pointer[1];
+                target = item[0].id;
+
+                // change target state id
+                if (target in redirectStates) {
+                    target = redirectStates[target];
+                }
+
+                map.createPointer(id, item[1], target);
+            }
         }
-
-        // set end
+        
         item = registry.isEnd(id);
-        if (item) {
+        if (item && !(id in redirectStates)) {
+            map.createState(id);
             map.setReduceState(id, item[0], item[1], item[2]);
         }
-    }
 
+        
+    }
     
 
     
@@ -782,7 +825,7 @@ Registry.prototype = {
 
         id = this.map.debugMode ?
                 ':' + name :
-                't' + (++this.stateTagIdGen).toString(16);
+                (++this.stateTagIdGen).toString(36);
 
         lookup[access] = id;
         this.stateTagId[id] = name;
@@ -811,7 +854,7 @@ Registry.prototype = {
         // create symbol
         id = this.map.debugMode ?
                 '[' + name + ']' :
-                '>' + (++this.symbolGen).toString(16);
+                (++this.symbolGen).toString(36);
     
         lookup[access] = id;
         symbols[id] = name;

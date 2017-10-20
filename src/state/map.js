@@ -10,7 +10,7 @@ import {
         } from "libcore";
 
 function StateMap(debug) {
-    var start = "$start",
+    var start = "$",
         end = "$end",
         tokenEnd = "$",
         states = {};
@@ -80,9 +80,8 @@ StateMap.prototype = {
         // create symbol
         id = this.debugMode ?
                 '[' + name + ']' :
-                's' + (++this.symbolGen).toString(16);
-        //id = name;
-    
+                (++this.symbolGen).toString(36);
+
         lookup[access] = id;
         symbols[id] = name;
     
@@ -102,7 +101,7 @@ StateMap.prototype = {
 
         id = this.debugMode ?
                 '[' + name + ':' + params + '>' + ruleIndex + ']' :
-                '<' + (++this.reduceGen).toString(16);
+                (++this.reduceGen).toString(36);
 
         lookup[access] = id;
         all[id] = [name, params, ruleIndex];

@@ -54,7 +54,7 @@ Registry.prototype = {
 
         id = this.map.debugMode ?
                 ':' + name :
-                't' + (++this.stateTagIdGen).toString(16);
+                (++this.stateTagIdGen).toString(36);
 
         lookup[access] = id;
         this.stateTagId[id] = name;
@@ -83,7 +83,7 @@ Registry.prototype = {
         // create symbol
         id = this.map.debugMode ?
                 '[' + name + ']' :
-                '>' + (++this.symbolGen).toString(16);
+                (++this.symbolGen).toString(36);
     
         lookup[access] = id;
         symbols[id] = name;
