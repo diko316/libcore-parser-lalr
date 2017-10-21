@@ -11,7 +11,7 @@ import {
 
 function StateMap(debug) {
     var start = "$",
-        end = "$end",
+        end = "End",
         tokenEnd = "$",
         states = {};
 
@@ -20,7 +20,6 @@ function StateMap(debug) {
         this.reduceGen = 0;
 
     states[start] = {};
-    this.root = end;
     this.lookup = {};
     this.symbol = {};
     this.start = start;
@@ -34,7 +33,7 @@ function StateMap(debug) {
     this.reducers = {};
     this.debugMode = debug === true;
 
-    this.augmentedRoot = this.generateSymbol(end);
+    this.setRoot(end);
     this.endSymbol = this.generateSymbol(tokenEnd);
     this.endToken = tokenEnd;
 
@@ -47,6 +46,11 @@ StateMap.prototype = {
     debugMode: false,
     
     constructor: StateMap,
+
+    setRoot: function (name) {
+        this.root = this.generateSymbol(name);
+        this.augmentedRoot = this.generateSymbol(name + "'");
+    },
 
     createState: function (id) {
         var states = this.states;

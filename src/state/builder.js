@@ -40,8 +40,7 @@ function build(root, map, tokenizer, definitions, exclude) {
 
 
     map.reset();
-    
-    map.root = map.generateSymbol("$" + root);
+    map.setRoot(root);
 
     registry = new Registry(map, tokenizer);
 

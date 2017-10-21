@@ -6,11 +6,11 @@ import {
             array
         } from "libcore";
 
-var LEXEME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
+var NONTERMINAL_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*\'?)$/;
 
 export
     function isTerminal(name) {
-        return name === "$" || !LEXEME_RE.test(name);
+        return name === "$" || !NONTERMINAL_RE.test(name);
     }
 
 export 
@@ -22,6 +22,7 @@ export
             terminal = definitions[++c];
 
             if (!isRegex(terminal)) {
+                console.log(terminal);
                 throw new Error("Invalid Terminal pattern: " + terminal);
             }
 

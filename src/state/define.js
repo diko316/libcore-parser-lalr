@@ -4,111 +4,169 @@ import State from "./define/state.js";
 
 import List from "./define/list.js";
 
-
 function define(registry) {
 
     var map = registry.map,
-        ruleIndex = registry.productions,
-        queue = new List(),
-        STATE_START = 1,
-        STATE_END = 2,
-        STATE_START_RULE = 3,
-        STATE_START_RULESTATE = 4,
-        STATE_END_RULESTATE = 6,
-        STATE_END_RULE= 6,
-        STATE_DEFINE_STATE = 5,
-        defineState = STATE_START;
-    var anchor, state, production,
-        rules, rulesLen, rulesIndex,
-        states, statesLen, statesIndex, ruleState,
-        item, before;
+        StateClass = State,
+        productionStatesIndex = registry.productions,
+        closureDefinitions = registry.closureItems,
+        stateDefineQueue = new List(),
+        STATE_END = 0,
+        STATE_CREATE_INITIAL = 1,
+        STATE_CREATE_GOTO = 2,
+        STATE_CREATE_STATE = 3,
+        defineState = STATE_CREATE_INITIAL,
+        production = map.augmentedRoot,
+        states = [];
 
-    var limit = 10;
+    var list, c, l, item, id,
+        productionLookup, state, found, sl, subject, next, processed,
+        token, additional, total;
 
-    console.log("registry ", registry);
 
-    queue.push([new State(registry, map.start),
-                map.augmentedRoot,
-                null]);
+    var limit = 20;
+
     
     for (; defineState;) {
-        if (!--limit) {
-            defineState = null;
-        }
-
         switch (defineState) {
-        case STATE_START:
-            item = queue.shift();
 
-            production = item[1];
-            anchor =
-                state = item[0];
+        // create initial closure from production
+        //  - requires "production" set
+        case STATE_CREATE_INITIAL:
+            sl = states.length;
+            state = states[sl] = new StateClass(registry, sl);
 
-            before = item[2]; 
+            list = productionStatesIndex[production];
+
+            productionLookup = {};
+            productionLookup[production] = true;
+
+            c = -1;
+            l = list.length;
+
+            // gather closure items
+            for (; l--;) {
+                item = list[++c];
+
+                state.addItem(item = closureDefinitions[item]);
+
+                // non-terminals
+                if (!item.terminal) {
+                    token = item.token;
+
+                    // include start rules in this production
+                    if (!(token in productionLookup)) {
+                        productionLookup[token] = true;
+
+                        // recurse get additional production first states
+                        additional = productionStatesIndex[token];
+                        list.push.apply(list, additional);
+                        l += additional.length;
+                    }
+                }
+                
+            }
+
+            defineState = STATE_CREATE_GOTO;
+            list = state.items;
+
+        /* falls through */
+        // requires "list"
+        case STATE_CREATE_GOTO:
+            c = -1;
+            l = list.length;
+            total = states.length;
+            processed = {};
+
+            for (; l--;) {
+                id = list[++c];
+                item = closureDefinitions[id];
+                next = item.after;
+                found = null;
+                token = item.token;
+
+                // has transition
+                if (next && !(token in processed)) {
+                    processed[token] = true;
+
+                    sl = total;
+                    for (; sl--;) {
+                        subject = states[sl];
+                        if (subject.hasItem(next)) {
+                            console.log('can use state for item: ', id);
+                            found = subject;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        stateDefineQueue.push([]);
+
+                    }
+
+                }
+                //console.log("item ", item);
+                
+            }
             
-            rules = ruleIndex[production];
-            rulesLen = rules.length;
-            rulesIndex = 0;
-            defineState = STATE_START_RULE;
-
-            console.log(production, rules);
-
-        /* falls through */
-        case STATE_START_RULE:
-            states = rules[rulesIndex++];
-            statesIndex = 0;
-            statesLen = states.length;
-            defineState = STATE_START_RULESTATE;
-
-        /* falls through */
-        case STATE_START_RULESTATE:
-            ruleState = states[0];
-
-            console.log("first ruleState", ruleState);
-            defineState = STATE_DEFINE_STATE;
-
-        /* falls through */
-        case STATE_DEFINE_STATE:
-            ruleState = states[statesIndex++];
-            console.log("ruleState", ruleState);
-
-            // next
-            if (--statesLen) {
-                break;
-            }
-            defineState = STATE_END_RULESTATE;
-
-        /* falls through */
-        case STATE_END_RULESTATE:
             
-            // end of state
-            console.log("ended, last ruleState ", ruleState);
+            // if (list) {
+            //     list = list.slice(0);
+            //     l = list.length;
 
-            // next rule
-            if (--rulesLen) {
-                defineState = STATE_START_RULE;
-                break;
-            }
-            defineState = STATE_END_RULE;
+            //     // replace item with next
+            //     for (; l--;) {
+            //         item = list[l];
 
+            //         token = item.token;
+            //         if (!item.terminal) {
+            //             console.log("is non terminal ", item);
+            //         }
 
-        /* falls through */
-        case STATE_END_RULE:
+            //         item = item.after;
+                    
+            //         if (item) {
+            //             list[l] = item;
+            //         }
+            //         else {
+            //             list.splice(l, 1);
+            //         }
+            //     }
 
-            console.log("ended all rules in production, next rule ", ruleState);
-            // next in queue
-            if (queue.first) {
-                defineState = STATE_START;
-                break;
-            }
+            //     if (!list.length) {
+            //         list = null;
+            //     }
+            // }
 
-            defineState = STATE_END;
+            // if (!list) {
+            //     defineState = stateDefineQueue.first ?
+            //                         STATE_CREATE_GOTO : STATE_END;
+            // }
+            // else {
+            //     console.log("creating state! ", sl);
+            //     defineState = STATE_CREATE_CLOSURE;
+            //     productionLookup = {};
+            //     state = states[sl] = new StateClass(registry, sl);
+            //     sl++;
+            // }
 
+            // break;
+            
         /* falls through */
         case STATE_END:
             defineState = null;
         }
+
+        
+
+        if (!--limit) {
+            console.log("limit reached");
+            break;
+        }
     }
+
+    console.log(states);
+    console.log("registry ", registry);
     
     
 }

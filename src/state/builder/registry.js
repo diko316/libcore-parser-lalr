@@ -10,25 +10,30 @@ function Registry(map, tokenizer) {
     this.tokenizer = tokenizer;
     this.map = map;
 
+    this.ruleLookup = {};
     this.productions = {};
-    this.productionNames = [];
-    this.lexemes = {};
+    this.closureItems = {};
 
-    this.stateIndex = {};
-    this.vstateIdGen = 0;
-    this.vstateLookup = {};
-    this.vstates = [];
-    this.ends = {};
+    // this.productions = {};
+    // this.productionNames = [];
+    // this.lexemes = {};
+    // this.closures = {};
 
-    this.rules = {};
-    this.recursions = {};
+    // this.stateIndex = {};
+    // this.vstateIdGen = 0;
+    // this.vstateLookup = {};
+    // this.vstates = [];
+    // this.ends = {};
+
+    // this.rules = {};
+    // this.recursions = {};
     
     this.terminals = [];
     this.terminalLookup = {};
 
-    this.symbolGen = 0;
-    this.symbol = {};
-    this.lookup = {};
+    // this.symbolGen = 0;
+    // this.symbol = {};
+    // this.lookup = {};
 
     this.stateTagIdGen = 0;
     this.stateTagId = {};
@@ -148,60 +153,122 @@ Registry.prototype = {
     },
 
     registerRule: function (name, mask, terminals) {
-        var states = this.stateIndex,
-            recursions = this.recursions,
-            productions = this.productions,
-            names = this.productionNames,
-            lexemes = this.lexemes,
-            ruleIndex = this.rules,
-            rules = [],
-            rl = 0,
+        var closureItems = this.closureItems,
+            rules = this.productions,
+            ruleIndex = this.ruleLookup,
             c = -1,
-            total = mask.length,
-            l = total + 1;
-        var items, id, lexeme, list, index, ruleId;
+            l = mask.length + 1,
+            before = null;
+        var items, state, ruleId, item;
 
-        if (!(name in productions)) {
-            productions[name] = [];
-            lexemes[name] = [];
-            names[names.length] = name;
+        if (!(name in rules)) {
+            rules[name] = [];
         }
 
-        list = productions[name];
-        index = list.length;
-        list[index] = rules;
-        lexemes[name][index] = mask;
-        ruleId = ':' + name + '-> ' + mask.join(',');
-
-        if (ruleId in ruleIndex) {
-            throw new Error("Duplicate Grammar Rule found " +
-                                this.lookupState(id) + " in production: " +
-                                this.map.lookupSymbol(name));
-        }
-
-        ruleIndex[ruleId] = name;
-        //console.log("------------------------------- Rules for: " + name);
+        rules = rules[name];
 
         for (; l--;) {
-            lexeme = mask[++c];
-
+            
             items = mask.slice(0);
-            items.splice(c, 0, '.');
-            id = this.hashState(items.join(' '));
+            items.splice(++c, 0, '.');
+            state = this.hashState(items.join(' '));
 
-            rules[rl++] = id;
+            // first
+            if (!c) {
+                ruleId = name + '->' + state;
+                if (ruleId in ruleIndex) {
+                    throw new Error("Duplicate Grammar Rule found " +
+                                    this.lookupState(state) +
+                                    " in production: " +
+                                    this.map.lookupSymbol(name));
+                }
+                ruleIndex[ruleId] = name;
 
-            states[id] = id;
-
-            ruleIndex[id] = name;
-
-            // non-terminal
-            if (l && !(c in terminals)) {
-                //console.log("recusion? ", id, " is ", lexeme);
-                recursions[id] = lexeme;
+                // register production state
+                rules[rules.length] = state;
             }
 
+            closureItems[state] =
+                item = {
+                    id: state,
+                    production: name,
+                    before: null,
+                    after: null,
+                    terminal: false,
+                    token: null
+                };
+
+            if (before) {
+                item.before = before.id;
+                before.after = state;
+            }
+            
+            before = item;
+
+            // has token lookup
+            if (l) {
+                item.terminal = c in terminals;
+                item.token = mask[c];
+            }
+            
         }
+
+
+
+        // var states = this.stateIndex,
+        //     recursions = this.recursions,
+        //     productions = this.productions,
+        //     names = this.productionNames,
+        //     lexemes = this.lexemes,
+        //     ruleIndex = this.rules,
+        //     rules = [],
+        //     rl = 0,
+        //     c = -1,
+        //     total = mask.length,
+        //     l = total + 1;
+        // var items, id, lexeme, list, index, ruleId;
+
+        // if (!(name in productions)) {
+        //     productions[name] = [];
+        //     lexemes[name] = [];
+        //     names[names.length] = name;
+        // }
+
+        // list = productions[name];
+        // index = list.length;
+        // list[index] = rules;
+        // lexemes[name][index] = mask;
+        // ruleId = ':' + name + '-> ' + mask.join(',');
+
+        // if (ruleId in ruleIndex) {
+        //     throw new Error("Duplicate Grammar Rule found " +
+        //                         this.lookupState(id) + " in production: " +
+        //                         this.map.lookupSymbol(name));
+        // }
+
+        // ruleIndex[ruleId] = name;
+        // //console.log("------------------------------- Rules for: " + name);
+
+        // for (; l--;) {
+        //     lexeme = mask[++c];
+
+        //     items = mask.slice(0);
+        //     items.splice(c, 0, '.');
+        //     id = this.hashState(items.join(' '));
+
+        //     rules[rl++] = id;
+
+        //     states[id] = id;
+
+        //     ruleIndex[id] = name;
+
+        //     // non-terminal
+        //     if (l && !(c in terminals)) {
+        //         //console.log("recusion? ", id, " is ", lexeme);
+        //         recursions[id] = lexeme;
+        //     }
+
+        // }
 
     },
 
