@@ -213,68 +213,14 @@ Registry.prototype = {
             
         }
 
+    },
 
-
-        // var states = this.stateIndex,
-        //     recursions = this.recursions,
-        //     productions = this.productions,
-        //     names = this.productionNames,
-        //     lexemes = this.lexemes,
-        //     ruleIndex = this.rules,
-        //     rules = [],
-        //     rl = 0,
-        //     c = -1,
-        //     total = mask.length,
-        //     l = total + 1;
-        // var items, id, lexeme, list, index, ruleId;
-
-        // if (!(name in productions)) {
-        //     productions[name] = [];
-        //     lexemes[name] = [];
-        //     names[names.length] = name;
-        // }
-
-        // list = productions[name];
-        // index = list.length;
-        // list[index] = rules;
-        // lexemes[name][index] = mask;
-        // ruleId = ':' + name + '-> ' + mask.join(',');
-
-        // if (ruleId in ruleIndex) {
-        //     throw new Error("Duplicate Grammar Rule found " +
-        //                         this.lookupState(id) + " in production: " +
-        //                         this.map.lookupSymbol(name));
-        // }
-
-        // ruleIndex[ruleId] = name;
-        // //console.log("------------------------------- Rules for: " + name);
-
-        // for (; l--;) {
-        //     lexeme = mask[++c];
-
-        //     items = mask.slice(0);
-        //     items.splice(c, 0, '.');
-        //     id = this.hashState(items.join(' '));
-
-        //     rules[rl++] = id;
-
-        //     states[id] = id;
-
-        //     ruleIndex[id] = name;
-
-        //     // non-terminal
-        //     if (l && !(c in terminals)) {
-        //         //console.log("recusion? ", id, " is ", lexeme);
-        //         recursions[id] = lexeme;
-        //     }
-
-        // }
+    createClosure: function (items) {
 
     },
 
     getRuleProduction: function (id) {
         var rules = this.rules;
-
         return id in rules ? rules[id] : null;
 
     },

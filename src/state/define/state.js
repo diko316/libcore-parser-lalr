@@ -54,6 +54,28 @@ State.prototype = {
 
     hasItem: function (item) {
         return item in this.itemLookup;
+    },
+
+    containsItems: function (items) {
+        var myItems = this.items,
+            total = myItems;
+        var subject, mylen, len;
+
+        if (items.length === total) {
+            mylen = total;
+            mainLoop: for (; mylen--;) {
+                subject = myItems[mylen];
+                len = total;
+                for (; len--;) {
+                    if (subject === items[len]) {
+                        continue mainLoop;
+                    }
+                }
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
 };

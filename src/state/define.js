@@ -20,8 +20,9 @@ function define(registry) {
         states = [];
 
     var list, c, l, item, id,
+        before, tokens, tl, closureItems, cl,
         productionLookup, state, found, sl, subject, next, processed,
-        token, additional, total;
+        token, additional, total, terminal;
 
 
     var limit = 20;
@@ -33,10 +34,13 @@ function define(registry) {
         // create initial closure from production
         //  - requires "production" set
         case STATE_CREATE_INITIAL:
+            processed = {};
             sl = states.length;
             state = states[sl] = new StateClass(registry, sl);
 
             list = productionStatesIndex[production];
+            tokens = [];
+            tl = 0;
 
             productionLookup = {};
             productionLookup[production] = true;
@@ -50,9 +54,16 @@ function define(registry) {
 
                 state.addItem(item = closureDefinitions[item]);
 
+                token = item.token;
+                terminal = item.terminal;
+
+                if (token && !(token in processed)) {
+                    processed[token] = true;
+                    tokens[tl++] = token;
+                }
+
                 // non-terminals
-                if (!item.terminal) {
-                    token = item.token;
+                if (!terminal) {
 
                     // include start rules in this production
                     if (!(token in productionLookup)) {
@@ -67,90 +78,110 @@ function define(registry) {
                 
             }
 
+            // prepare go state
+            c = -1;
+            l = tokens.length;
+            for (; l--;) {
+                token = tokens[++c];
+                stateDefineQueue.push([state,
+                                        token,
+                                        state.getTokenStates(token)]);
+            }
+
+            if (!stateDefineQueue.first) {
+                defineState = STATE_END;
+                break;
+            }
+
             defineState = STATE_CREATE_GOTO;
-            list = state.items;
+            
 
         /* falls through */
         // requires "list"
         case STATE_CREATE_GOTO:
-            c = -1;
-            l = list.length;
-            total = states.length;
+            item = stateDefineQueue.shift();
+            before = item[0];
+            closureItems = item[2].slice(0);
+
+            console.log('creating closure items: ', closureItems);
+
+            // create lookups
             processed = {};
+            productionLookup = {};
+            if (!terminal) {
+                productionLookup[token] = true;
+            }
 
+            // create closure from list
+            c = -1;
+            l = closureItems.length;
             for (; l--;) {
-                id = list[++c];
-                item = closureDefinitions[id];
-                next = item.after;
-                found = null;
+                item = closureDefinitions[closureItems[++c]];
                 token = item.token;
+                terminal = item.terminal;
 
-                // has transition
-                if (next && !(token in processed)) {
+                if (token && !(token in processed)) {
                     processed[token] = true;
-
-                    sl = total;
-                    for (; sl--;) {
-                        subject = states[sl];
-                        if (subject.hasItem(next)) {
-                            console.log('can use state for item: ', id);
-                            found = subject;
-                            break;
-                        }
-                    }
-
-                    if (!found) {
-                        stateDefineQueue.push([]);
-
-                    }
-
+                    tokens[tl++] = token;
                 }
-                //console.log("item ", item);
-                
+
+                // non-terminals
+                if (item.after && !terminal) {
+                    
+                    // include start rules in this production
+                    if (!(token in productionLookup)) {
+                        productionLookup[token] = true;
+
+                        // recurse get additional production first states
+                        additional = productionStatesIndex[token];
+                        closureItems.push.apply(closureItems, additional);
+                        l += additional.length;
+                    }
+                }
             }
             
-            
-            // if (list) {
-            //     list = list.slice(0);
-            //     l = list.length;
 
-            //     // replace item with next
-            //     for (; l--;) {
-            //         item = list[l];
+            console.log("> new closures ", closureItems);
+            // find state having only the following items
+            state = null;
+            sl = states.length;
 
-            //         token = item.token;
-            //         if (!item.terminal) {
-            //             console.log("is non terminal ", item);
-            //         }
+            for (; sl--;) {
+                found = states[sl];
+                if (found.containsItems(closureItems)) {
+                    state = found;
+                    break;
+                }
+            }
 
-            //         item = item.after;
-                    
-            //         if (item) {
-            //             list[l] = item;
-            //         }
-            //         else {
-            //             list.splice(l, 1);
-            //         }
-            //     }
+            // use this state instead
+            if (state) {
+                console.log('found: ', state);
+            }
+            // create state containing the items
+            else {
+                tokens = [];
+                tl = 0;
 
-            //     if (!list.length) {
-            //         list = null;
-            //     }
-            // }
+                sl = states.length;
+                state = states[sl] = new StateClass(registry, sl);
+                c = -1;
+                l = closureItems.length;
+                for (; l--;) {
+                    item = closureItems[++c];
+                    item = closureDefinitions[item];
+                    state.addItem(item);
+                }
+                console.log("created state ", state);
 
-            // if (!list) {
-            //     defineState = stateDefineQueue.first ?
-            //                         STATE_CREATE_GOTO : STATE_END;
-            // }
-            // else {
-            //     console.log("creating state! ", sl);
-            //     defineState = STATE_CREATE_CLOSURE;
-            //     productionLookup = {};
-            //     state = states[sl] = new StateClass(registry, sl);
-            //     sl++;
-            // }
+            }
 
-            // break;
+            // // create next state
+            defineState = stateDefineQueue.first ?
+                                STATE_CREATE_GOTO : STATE_END;
+            defineState = null;
+            break;
+
             
         /* falls through */
         case STATE_END:
