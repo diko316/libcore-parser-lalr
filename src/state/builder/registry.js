@@ -216,47 +216,94 @@ Registry.prototype = {
     },
 
     createClosure: function (items) {
+        var definitions = this.closureItems,
+            productionItems = this.productions,
+            created = {},
+            processed = {},
+            tokens = [],
+            tl = 0,
+            c = -1,
+            l = items.length;
+        var item, token, terminal, list, additional;
 
-    },
+        items = items.slice(0);
 
-    getRuleProduction: function (id) {
-        var rules = this.rules;
-        return id in rules ? rules[id] : null;
+        for (; l--;) {
+            item = items[++c];
+            if (item in created) {
+                items.splice(c--, 1);
+                continue;
+            }
+            created[item] = true;
+            item = definitions[item];
+            token = item.token;
+            terminal = item.terminal;
 
-    },
+            if (token) {
+                
+                if (token in processed) {
+                    list = tokens[processed[token]][1];
+                    list[list.length] = item.after;
+                }
+                else {
+                    processed[token] = tl;
+                    tokens[tl++] = [token, [item.after]];
 
-    getRules: function (production) {
-        var list = this.productions;
+                    // non-terminal
+                    if (!terminal) {
+                        // recurse get additional production first states
+                        additional = productionItems[token];
+                        items.push.apply(items, additional);
+                        l += additional.length;
 
-        return production in list ?
-                    [list[production], this.lexemes[production]] : null;
-    },
+                    }
+                }
 
-    isRecursed: function (id) {
-        var recursions = this.recursions;
-        return id in recursions && recursions[id];
-    },
-
-    setEnd: function (id, production, params, ruleId) {
-        var ends = this.ends,
-            map = this.map,
-            state = this.vstateLookup[id];
-
-        if (!(id in ends)) {
-            ends[id] = [production, params, ruleId];
+            }
         }
-        else if (ends[id][0] !== production) {
-            throw new Error("Reduce conflict! " + state.id +
-                                ":" + map.lookupSymbol(ends[id][0]) + ' <- ' +
-                                map.lookupSymbol(production));
-        }
-        
-    },
 
-    isEnd: function (id) {
-        var ends = this.ends;
-        return id in ends && ends[id];
+        return [items, tokens];
+
     }
+
+    // getRuleProduction: function (id) {
+    //     var rules = this.rules;
+    //     return id in rules ? rules[id] : null;
+
+    // },
+
+    // getRules: function (production) {
+    //     var list = this.productions;
+
+    //     return production in list ?
+    //                 [list[production], this.lexemes[production]] : null;
+    // },
+
+    // isRecursed: function (id) {
+    //     var recursions = this.recursions;
+    //     return id in recursions && recursions[id];
+    // },
+
+    // setEnd: function (id, production, params, ruleId) {
+    //     var ends = this.ends,
+    //         map = this.map,
+    //         state = this.vstateLookup[id];
+
+    //     if (!(id in ends)) {
+    //         ends[id] = [production, params, ruleId];
+    //     }
+    //     else if (ends[id][0] !== production) {
+    //         throw new Error("Reduce conflict! " + state.id +
+    //                             ":" + map.lookupSymbol(ends[id][0]) + ' <- ' +
+    //                             map.lookupSymbol(production));
+    //     }
+        
+    // },
+
+    // isEnd: function (id) {
+    //     var ends = this.ends;
+    //     return id in ends && ends[id];
+    // }
 };
 
 

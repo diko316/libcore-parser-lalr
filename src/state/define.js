@@ -17,15 +17,14 @@ function define(registry) {
         STATE_CREATE_STATE = 3,
         defineState = STATE_CREATE_INITIAL,
         production = map.augmentedRoot,
-        states = [];
+        states = [],
+        sl = 0;
 
-    var list, c, l, item, id,
-        before, tokens, tl, closureItems, cl,
-        productionLookup, state, found, sl, subject, next, processed,
-        token, additional, total, terminal;
+    var list, c, l, item, items, token, total, tokens, transitionToken,
+        stateBefore, state;
 
 
-    var limit = 20;
+    var limit = 100;
 
     
     for (; defineState;) {
@@ -34,59 +33,24 @@ function define(registry) {
         // create initial closure from production
         //  - requires "production" set
         case STATE_CREATE_INITIAL:
-            processed = {};
+            // new closures
+            item = registry.createClosure(productionStatesIndex[production]);
+            list = item[1];
+
+            // create state from closure
             sl = states.length;
-            state = states[sl] = new StateClass(registry, sl);
+            state = states[sl] = new StateClass(registry,
+                                                sl.toString(32),
+                                                item[0]);
 
-            list = productionStatesIndex[production];
-            tokens = [];
-            tl = 0;
-
-            productionLookup = {};
-            productionLookup[production] = true;
-
+            // queue transitions
             c = -1;
             l = list.length;
-
-            // gather closure items
             for (; l--;) {
                 item = list[++c];
-
-                state.addItem(item = closureDefinitions[item]);
-
-                token = item.token;
-                terminal = item.terminal;
-
-                if (token && !(token in processed)) {
-                    processed[token] = true;
-                    tokens[tl++] = token;
-                }
-
-                // non-terminals
-                if (!terminal) {
-
-                    // include start rules in this production
-                    if (!(token in productionLookup)) {
-                        productionLookup[token] = true;
-
-                        // recurse get additional production first states
-                        additional = productionStatesIndex[token];
-                        list.push.apply(list, additional);
-                        l += additional.length;
-                    }
-                }
-                
+                stateDefineQueue.push([state, item[1], item[0]]);
             }
 
-            // prepare go state
-            c = -1;
-            l = tokens.length;
-            for (; l--;) {
-                token = tokens[++c];
-                stateDefineQueue.push([state,
-                                        token,
-                                        state.getTokenStates(token)]);
-            }
 
             if (!stateDefineQueue.first) {
                 defineState = STATE_END;
@@ -94,92 +58,59 @@ function define(registry) {
             }
 
             defineState = STATE_CREATE_GOTO;
+            break;
             
 
         /* falls through */
         // requires "list"
         case STATE_CREATE_GOTO:
             item = stateDefineQueue.shift();
-            before = item[0];
-            closureItems = item[2].slice(0);
+            stateBefore = item[0];
+            list = item[1];
+            transitionToken = item[2];
+            item = registry.createClosure(list);
+            items = item[0];
+            tokens = item[1];
 
-            console.log('creating closure items: ', closureItems);
-
-            // create lookups
-            processed = {};
-            productionLookup = {};
-            if (!terminal) {
-                productionLookup[token] = true;
-            }
-
-            // create closure from list
-            c = -1;
-            l = closureItems.length;
-            for (; l--;) {
-                item = closureDefinitions[closureItems[++c]];
-                token = item.token;
-                terminal = item.terminal;
-
-                if (token && !(token in processed)) {
-                    processed[token] = true;
-                    tokens[tl++] = token;
-                }
-
-                // non-terminals
-                if (item.after && !terminal) {
-                    
-                    // include start rules in this production
-                    if (!(token in productionLookup)) {
-                        productionLookup[token] = true;
-
-                        // recurse get additional production first states
-                        additional = productionStatesIndex[token];
-                        closureItems.push.apply(closureItems, additional);
-                        l += additional.length;
-                    }
-                }
-            }
-            
-
-            console.log("> new closures ", closureItems);
-            // find state having only the following items
+            // find states having the same closure items
+            total = sl = states.length;
             state = null;
-            sl = states.length;
-
             for (; sl--;) {
-                found = states[sl];
-                if (found.containsItems(closureItems)) {
-                    state = found;
+                item = states[sl];
+                if (item.containsItems(items)) {
+                    state = item;
                     break;
                 }
             }
 
-            // use this state instead
-            if (state) {
-                console.log('found: ', state);
-            }
-            // create state containing the items
-            else {
-                tokens = [];
-                tl = 0;
+            // create state if no state found
+            if (!state) {
+                sl = total++;
+                state = states[sl] = new StateClass(registry,
+                                                    sl.toString(32),
+                                                    list);
 
-                sl = states.length;
-                state = states[sl] = new StateClass(registry, sl);
+                // queue transitions
                 c = -1;
-                l = closureItems.length;
+                l = tokens.length;
                 for (; l--;) {
-                    item = closureItems[++c];
-                    item = closureDefinitions[item];
-                    state.addItem(item);
+                    item = tokens[++c];
+                    stateDefineQueue.push([state, item[1], item[0]]);
                 }
-                console.log("created state ", state);
-
             }
 
-            // // create next state
+            // apply end state for each end items
+            c = -1;
+            l = list.length;
+            for (; l--;) {
+                console.log('point ', stateBefore.id, ':', transitionToken, '->', state.id);
+            }
+            //console.log('point ', stateBefore, ':', transitionToken, ' -> ', list);
+
+
+            // create next state
             defineState = stateDefineQueue.first ?
                                 STATE_CREATE_GOTO : STATE_END;
-            defineState = null;
             break;
 
             
@@ -196,7 +127,7 @@ function define(registry) {
         }
     }
 
-    console.log(states);
+    console.log("states: ", states);
     console.log("registry ", registry);
     
     
