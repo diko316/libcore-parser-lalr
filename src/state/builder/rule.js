@@ -53,8 +53,6 @@ export
                 throw new Error("Invalid Grammar rule declared in " + name);
             }
 
-            //console.log("define rules: ", name, " definitions ", rule);
-
             // create rule mask
             rl = rule.length;
             ruleMask = [];
@@ -79,9 +77,7 @@ export
                     isTerminalToken = isTerm(lexeme);
                 }
 
-                
-                //console.log("hashed! ", ruleMask[rl]);
-                ruleMask[rl] = registry.map.generateSymbol(lexeme);//registry.hashLexeme(lexeme);
+                ruleMask[rl] = registry.map.generateSymbol(lexeme);
 
                 if (isTerminalToken) {
                     terminals[rl] = true;

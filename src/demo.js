@@ -205,7 +205,7 @@ var simple = true,
 var parser;
 
 simple = false;
-debug = false;
+//debug = false;
 //tryParse = false;
 
 //console.log(parser);
@@ -508,6 +508,7 @@ parser = Parser.define("Joqx",
         
         "Primary",          [
                                 "Literal",
+                                "Updatable",
                             
                                 "Array",
                                 "Object",
@@ -518,7 +519,7 @@ parser = Parser.define("Joqx",
                             ],
 
         "Updatable",        [
-                                "Primary",
+                                //"Primary",
                                 "identifier",
                                 ["Updatable", ".", "identifier"],
                                 ["Updatable", "[", "Javascript", "]"]
@@ -527,6 +528,7 @@ parser = Parser.define("Joqx",
         
 
         "PostFix",          [
+                                "Primary",
                                 "Updatable",
                                 ["Updatable", "++"],
                                 ["Updatable", "--"]

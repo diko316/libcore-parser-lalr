@@ -343,8 +343,6 @@ function defineRules(registry, name, definitions) {
                 throw new Error("Invalid Grammar rule declared in " + name);
             }
 
-            //console.log("define rules: ", name, " definitions ", rule);
-
             // create rule mask
             rl = rule.length;
             ruleMask = [];
@@ -369,9 +367,7 @@ function defineRules(registry, name, definitions) {
                     isTerminalToken = isTerm(lexeme);
                 }
 
-                
-                //console.log("hashed! ", ruleMask[rl]);
-                ruleMask[rl] = registry.map.generateSymbol(lexeme);//registry.hashLexeme(lexeme);
+                ruleMask[rl] = registry.map.generateSymbol(lexeme);
 
                 if (isTerminalToken) {
                     terminals[rl] = true;
@@ -387,8 +383,6 @@ function defineRules(registry, name, definitions) {
 
 
     }
-
-//import List from "./list.js";
 
 function State(registry, id, items) {
 
@@ -428,12 +422,14 @@ State.prototype = {
 
     pointTo: function (token, targetState) {
         var names = this.tokens,
-            pointers = this.pointers;
+            pointers = this.pointers,
+            map = this.registry.map;
 
         if (token in pointers) {
             if (pointers[token] !== targetState) {
                 throw new Error("Invalid state target from " + this.id +
-                                        " -> " + token + " -> " + targetState);
+                                    " -> " + map.lookupSymbol(token) +
+                                    " -> " + map.lookupSymbol(targetState));
             }
         }
         else {
@@ -443,11 +439,16 @@ State.prototype = {
     },
 
     setEnd: function (item) {
-        var current = this.end;
+        var current = this.end,
+            map = this.registry.map;
+
         if (current) {
-            throw new Error("There is reduce-reduce conflict in: " +
-                                item.id + " <- " + item.production +
-                                " from state: ", this.id);
+            throw new Error("There is reduce-reduce conflict in: " + this.id +
+                                " when you tried reducing it to `" +
+                                map.lookupSymbol(item.production) +
+                                "`, currently this state is reduced in `" +
+                                map.lookupSymbol(current[1]) +
+                                "` production.");
         }
         
         this.end = [item.params, item.production, item.index];
@@ -674,26 +675,8 @@ function Registry(map, tokenizer) {
     this.productions = {};
     this.closureItems = {};
 
-    // this.productions = {};
-    // this.productionNames = [];
-    // this.lexemes = {};
-    // this.closures = {};
-
-    // this.stateIndex = {};
-    // this.vstateIdGen = 0;
-    // this.vstateLookup = {};
-    // this.vstates = [];
-    // this.ends = {};
-
-    // this.rules = {};
-    // this.recursions = {};
-    
     this.terminals = [];
     this.terminalLookup = {};
-
-    // this.symbolGen = 0;
-    // this.symbol = {};
-    // this.lookup = {};
 
     this.stateTagIdGen = 0;
     this.stateTagId = {};
