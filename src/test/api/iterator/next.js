@@ -70,7 +70,7 @@ describe('Base Iterator must have next() method that returns '+
                 }));
                 
                 expect(iterator.next()).toEqual(joc({
-                    name: '$end',
+                    name: "Sentence'",
                     reduceCount: 1
                 }));
 

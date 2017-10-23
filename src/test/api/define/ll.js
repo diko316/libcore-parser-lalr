@@ -30,7 +30,7 @@ describe('Declares LL grammar using ' +
                         {"name":"Assign","type":2,"reduceCount":1},
                         {"name":"Assign","type":2,"reduceCount":3},
                         {"name":"Expr","type":2,"reduceCount":1},
-                        {"name":"$end","type":4,"reduceCount":1}],
+                        {"name":"Expr'","type":4,"reduceCount":1}],
             parser;
         
         function defineGrammar() {

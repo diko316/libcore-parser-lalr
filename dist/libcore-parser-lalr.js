@@ -7,8 +7,8 @@
 Tokenizer = Tokenizer && Tokenizer.hasOwnProperty('default') ? Tokenizer['default'] : Tokenizer;
 
 function StateMap(debug) {
-    var start = "$",
-        end = "$end",
+    var start = "0",
+        end = "End",
         tokenEnd = "$",
         states = {};
 
@@ -17,7 +17,6 @@ function StateMap(debug) {
         this.reduceGen = 0;
 
     states[start] = {};
-    this.root = end;
     this.lookup = {};
     this.symbol = {};
     this.start = start;
@@ -31,7 +30,7 @@ function StateMap(debug) {
     this.reducers = {};
     this.debugMode = debug === true;
 
-    this.augmentedRoot = this.generateSymbol(end);
+    this.setRoot(end);
     this.endSymbol = this.generateSymbol(tokenEnd);
     this.endToken = tokenEnd;
 
@@ -44,6 +43,11 @@ StateMap.prototype = {
     debugMode: false,
     
     constructor: StateMap,
+
+    setRoot: function (name) {
+        this.root = this.generateSymbol(name);
+        this.augmentedRoot = this.generateSymbol(name + "'");
+    },
 
     createState: function (id) {
         var states = this.states;
@@ -186,7 +190,7 @@ StateMap.prototype = {
     importStates: function (definition) {
         var isObject = libcore.object,
             isString = libcore.string;
-        var start, states, ends, root, exclude, symbol, reducers,
+        var start, states, ends, root, exclude, symbol, reducers, augmentedRoot,
             list, c, l;
         
         if (!isObject(definition)) {
@@ -203,6 +207,12 @@ StateMap.prototype = {
         if (!isString(root)) {
             throw new Error(
                         'Invalid "root" grammar rule in definition parameter.');
+        }
+
+        augmentedRoot = definition.augmentedRoot;
+        if (!isString(augmentedRoot)) {
+            throw new Error(
+            'Invalid "augmentedRoot" grammar rule in definition parameter.');
         }
         
         start = definition.start;
@@ -235,7 +245,9 @@ StateMap.prototype = {
         for (c = -1, l = list.length; l--;) {
             exclude[list[++c]] = true;
         }
-        
+
+
+        this.augmentedRoot = augmentedRoot;
         this.root = root;
         this.start = start;
         this.states = states;
@@ -263,6 +275,7 @@ StateMap.prototype = {
 
 
         return {
+                augmentedRoot: this.augmentedRoot,
                 root: this.root,
                 start: this.start,
                 states: this.states,
@@ -291,10 +304,10 @@ StateMap.prototype = {
     
 };
 
-var LEXEME_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*|\$end|\$)$/;
+var NONTERMINAL_RE = /^([A-Z][a-zA-Z]+(\_?[a-zA-Z0-9])*\'?)$/;
 
 function isTerminal(name) {
-        return name === "$" || !LEXEME_RE.test(name);
+        return name === "$" || !NONTERMINAL_RE.test(name);
     }
 
 function defineTerminals(registry, name, definitions) {
@@ -380,6 +393,73 @@ function defineRules(registry, name, definitions) {
 
     }
 
+//import List from "./list.js";
+
+function State(registry, id, items) {
+
+    this.id = id;
+    this.registry = registry;
+    this.items = items || [];
+    this.end = null;
+
+    this.tokens = [];
+    this.pointers = {};
+}
+
+State.prototype = {
+    constructor: State,
+    
+    containsItems: function (items) {
+        var myItems = this.items,
+            total = myItems.length;
+        var subject, mylen, len;
+
+        if (items.length === total) {
+            mylen = total;
+            mainLoop: for (; mylen--;) {
+                subject = myItems[mylen];
+                len = total;
+                for (; len--;) {
+                    if (subject === items[len]) {
+                        continue mainLoop;
+                    }
+                }
+                return false;
+            }
+            return true;
+        }
+        return false;
+    },
+
+    pointTo: function (token, targetState) {
+        var names = this.tokens,
+            pointers = this.pointers;
+
+        if (token in pointers) {
+            if (pointers[token] !== targetState) {
+                throw new Error("Invalid state target from " + this.id +
+                                        " -> " + token + " -> " + targetState);
+            }
+        }
+        else {
+            pointers[token] = targetState;
+            names[names.length] = token;
+        }
+    },
+
+    setEnd: function (item) {
+        var current = this.end;
+        if (current) {
+            throw new Error("There is reduce-reduce conflict in: " +
+                                item.id + " <- " + item.production +
+                                " from state: ", this.id);
+        }
+        
+        this.end = [item.params, item.production, item.id];
+    }
+
+};
+
 function List(name) {
     this.name = name;
 }
@@ -405,6 +485,22 @@ List.prototype = {
         return null;
     },
 
+    pop: function () {
+        var item = this.last;
+        var last;
+
+        if (item) {
+            this.last = last = item[0];
+            if (!last) {
+                this.first = last;
+            }
+            return item[1];
+        }
+        
+
+        return null;
+    },
+
     push: function (item) {
         item = [null, item];
 
@@ -421,364 +517,158 @@ List.prototype = {
     }
 };
 
-function State(registry, id) {
-    var list = registry.vstates;
-
-    id = id || (++registry.vstateIdGen).toString(36);
-    
-    registry.vstateLookup[id] = 
-        list[list.length] = this;
-    
-    this.id = id;
-    this.registry = registry;
-    this.tags = {};
-    this.tagNames = [];
-    this.pointer = new List();
-    this.rparent = null;
-    this.recursedAs = {};
-    
-}
-
-State.prototype = {
-    pointer: null,
-    registry: null,
-    constructor: State,
-
-    tag: function (id) {
-        var list = this.tags,
-            names = this.tagNames;
-
-        if (!(id in list)) {
-            list[id] = true;
-            names[names.length] = id;
-        }
-
-        return this;
-    },
-
-    hasTag: function (id) {
-        return id in this.tags;
-    },
-
-    setRecursed: function (production) {
-        var access = ':' + production,
-            list = this.recursedAs;
-
-        if (!(access in list)) {
-            list[access] = true;
-        }
-
-        return this;
-    },
-
-    isRecursed: function (production) {
-        var access = ':' + production,
-            list = this.recursedAs;
-
-        return access in list;
-    },
-
-    findRecursion: function (id) {
-        var me = this,
-            parent = me.rparent;
-
-        for (; parent; parent = parent.rparent) {
-            if (parent.hasTag(id)) {
-                return parent;
-            }
-        }
-        return null;
-    },
-
-    pointed: function (token) {
-        var pointer = this.pointer.first;
-        var item;
-
-        for (; pointer; pointer = pointer[0]) {
-            item = pointer[1];
-            if (item[1] === token) {
-                return item[0];
-            }
-        }
-        
-        return null;
-    },
-
-    pointTo: function (token, state) {
-        this.pointer.push([state, token]);
-        return state;
-    },
-
-    point: function (token, recurseState) {
-        var pointed = this.pointed(token);
-        var newState;
-
-        // create
-        if (!pointed) {
-            newState = new State(this.registry);
-            newState.rparent = recurseState;
-
-            return this.pointTo(token, newState);
-
-        }
-
-        return pointed;
-    }
-};
-
 function define$1(registry) {
 
     var map = registry.map,
         StateClass = State,
+        productionStatesIndex = registry.productions,
+        closureDefinitions = registry.closureItems,
+        stateDefineQueue = new List(),
         STATE_END = 0,
-        STATE_START = 1,
-        STATE_RUN_RULES = 2,
-        STATE_START_RULE = 3,
-        STATE_DEFINE_LEXEME = 4,
-        STATE_DEFINE_ENDER = 5,
-        STATE_END_RULES = 6,
-        Queue = List,
-        defineState = STATE_START,
-        start = new StateClass(registry, map.start),
-        queue = new Queue('queue'),
-        pending = new Queue('pending'),
-        processed = {},
-        endStateList = [],
-        esl = 0,
-        iterations = 0;
+        STATE_CREATE_INITIAL = 1,
+        STATE_CREATE_GOTO = 2,
+        STATE_CREATE_STATE = 3,
+        defineState = STATE_CREATE_INITIAL,
+        production = map.augmentedRoot,
+        states = [],
+        sl = 0;
 
-    var item, rules, rule, rindex, rlen, lexemes, tokens,
-        id, token, lindex, llen,
-        state, production, recursion, enqueue,
-        ruleState, tagged,
-        pointed, target,
-        pid, empties, redirectStates, emptyStatesByReducer, endState, reduceId,
-        redirected,
-        states, pointer, c, l;
+    var list, c, l, item, items, token, total, tokens, id, lookup,
+        stateBefore, state, end;
 
-    //var limit = 1000;
 
-    queue.push([start, map.augmentedRoot]);
-    esl = 0;
+    //var limit = 100;
 
+    
     for (; defineState;) {
-        iterations++;
+        switch (defineState) {
+
+        // create initial closure from production
+        //  - requires "production" set
+        case STATE_CREATE_INITIAL:
+            // new closures
+            item = registry.createClosure(productionStatesIndex[production]);
+            list = item[1];
+
+            // create state from closure
+            sl = states.length;
+            state = states[sl] = new StateClass(registry,
+                                                sl.toString(32),
+                                                item[0]);
+
+            // queue transitions
+            c = -1;
+            l = list.length;
+            for (; l--;) {
+                item = list[++c];
+                stateDefineQueue.push([state, item[1], item[0]]);
+            }
+
+
+            if (!stateDefineQueue.first) {
+                defineState = STATE_END;
+                break;
+            }
+
+            defineState = STATE_CREATE_GOTO;
+            break;
+            
+
+        /* falls through */
+        // requires "list"
+        case STATE_CREATE_GOTO:
+            item = stateDefineQueue.shift();
+            stateBefore = item[0];
+            list = item[1];
+            token = item[2];
+            item = registry.createClosure(list);
+            items = item[0];
+            tokens = item[1];
+
+            // find states having the same closure items
+            total = sl = states.length;
+            state = null;
+            for (; sl--;) {
+                item = states[sl];
+                if (item.containsItems(items)) {
+                    state = item;
+                    break;
+                }
+            }
+
+            // create state if no state found
+            if (!state) {
+                sl = total++;
+                state = states[sl] = new StateClass(registry,
+                                                    sl.toString(32),
+                                                    items);
+
+                // queue transitions
+                c = -1;
+                l = tokens.length;
+                for (; l--;) {
+                    item = tokens[++c];
+                    stateDefineQueue.push([state, item[1], item[0]]);
+                }
+
+                // apply end state for each end items
+                c = -1;
+                l = items.length;
+                for (; l--;) {
+                    item = closureDefinitions[items[++c]];
+                    if (!item.after) {
+                        state.setEnd(item);
+                    }
+                }
+
+            }
+
+            
+
+
+
+            // point state before to new state
+            stateBefore.pointTo(token, state);
+
+            // create next state
+            defineState = stateDefineQueue.first ?
+                                STATE_CREATE_GOTO : STATE_END;
+            break;
+
+            
+        /* falls through */
+        case STATE_END:
+            defineState = null;
+        }
+
+        
+
         // if (!--limit) {
+        //     console.log("limit reached");
         //     break;
         // }
-
-        switch (defineState) {
-        case STATE_START:
-            item = queue.shift();
-
-            production = item[1];
-            ruleState = item[0];
-
-            // go to next
-            if (ruleState.isRecursed(production)) {
-                defineState = STATE_END_RULES;
-                break;
-            }
-
-            ruleState.setRecursed(production);
-            rules = registry.getRules(production);
-            if (!rules) {
-                throw new Error("Production is not defined: " +
-                                map.lookupSymbol(production));
-            }
-            lexemes = rules[1];
-            rules = rules[0];
-            rindex = -1;
-            rlen = rules.length;
-            defineState = STATE_RUN_RULES;
-            
-
-        /* falls through */
-        case STATE_RUN_RULES:
-            if (!(rlen--)) {
-                defineState = STATE_END_RULES;
-                break;
-            }
-
-            rule = rules[++rindex];
-            tokens = lexemes[rindex];
-            defineState = STATE_START_RULE;
-            
-
-        /* falls through */
-        case STATE_START_RULE:
-            lindex = -1;
-            llen = tokens.length;
-
-            id = rule[0];
-            token = tokens[0];
-            state = ruleState;
-
-            if (state.hasTag(id)) {
-                defineState = STATE_RUN_RULES;
-                break;
-            }
-            
-            target = state.findRecursion(id, token);
-            if (target) {
-                pointed = target.pointed(token);
-                if (pointed && !state.pointed(token)) {
-                    state.pointTo(token, pointed);
-                }
-            }
-
-            defineState = STATE_DEFINE_LEXEME;
-
-        /* falls through */
-        case STATE_DEFINE_LEXEME:
-
-            id = rule[++lindex];
-            tagged = state.hasTag(id);
-            
-
-            // dont redefine, go to next rule
-            if (!(llen--) || tagged) {
-                defineState = tagged ?
-                                STATE_RUN_RULES : STATE_DEFINE_ENDER;
-                break;
-            }
-
-            //console.log("define id! ", id);
-
-            token = tokens[lindex];
-
-            // recursion
-            recursion = registry.isRecursed(id);
-            pid = state.id + ':' + recursion;
-
-            // dont send to pending if already processed
-            if (recursion && !(pid in processed)) {
-                processed[pid] = true; 
-                (state === ruleState ?
-                    queue : pending).push([state, recursion]);
-            }
-
-            state.tag(id);
-            state = state.pointed(token) || state.point(token, ruleState);
-
-            break;
-
-        /* falls through */
-        case STATE_DEFINE_ENDER:
-            id = rule[lindex];
-            state.tag(id);
-            registry.setEnd(state.id, production, lindex, id);
-            endStateList[esl++] = state;
-            defineState = STATE_RUN_RULES;
-            break;
-        
-        case STATE_END_RULES:
-            enqueue = queue.last;
-
-            if (!enqueue && pending.last) {
-                queue.push(enqueue = pending.shift());
-            }
-
-            defineState = enqueue ? STATE_START : STATE_END;
-            // if (!enqueue) {
-            //     console.log("ended! iterations: ", 1000 - limit);
-            // }
-        }
-        
     }
 
-    if (map.debugMode) {
-        console.log("define iterations: ", iterations);
-        console.log("generated states: ", registry.vstates.length);
-    }
-    //console.log("iterations: ", 1000 - limit);
-
-    //console.log(registry);
-
-
-
-    // generate state map
-    states = registry.vstates;
-    empties = 0;
-    //var endstates = 0;
-    redirectStates = {};
-    emptyStatesByReducer = {};
-
-    // generate redirections to end states
-    for (; esl--;) {
-        state = endStateList[esl];
-
-        // no pointer! then this is a very good candidate
-        if (!state.pointer.first) {
-            id = state.id;
-            endState = registry.isEnd(id);
-            reduceId = map.generateReduceId(endState[0],
-                                            endState[1],
-                                            endState[2]);
-            // register as reduce state
-            if (!(reduceId in emptyStatesByReducer)) {
-                emptyStatesByReducer[reduceId] = id;
-            }
-            // create redirection
-            else {
-                redirectStates[id] = emptyStatesByReducer[reduceId];
-            }
-        }
-    }
-
-    for (c = - 1, l = states.length; l--;) {
-        state = states[++c];
-        id = state.id;
-        pointer = state.pointer.first;
-
-        if (pointer) {
-            map.createState(id);
-            for (; pointer; pointer = pointer[0]) {
-                item = pointer[1];
-                target = item[0].id;
-
-                // change target state id
-                if (target in redirectStates) {
-                    target = redirectStates[target];
-                }
-
-                map.createPointer(id, item[1], target);
-            }
+    // finalize map
+    sl = states.length;
+    for (; sl--;) {
+        item = states[sl];
+        id = item.id;
+        state = map.createState(id);
+        tokens = item.tokens;
+        lookup = item.pointers;
+        c = -1;
+        l = tokens.length;
+        for (; l--;) {
+            token = tokens[++c];
+            map.createPointer(id, token, lookup[token].id);
         }
         
-        item = registry.isEnd(id);
-        if (item && !(id in redirectStates)) {
-            map.createState(id);
-            map.setReduceState(id, item[0], item[1], item[2]);
+        item = item.end;
+        if (item) {
+            map.setReduceState(id, item[1], item[0], item[2]);
         }
-
-        
     }
-    
-
-    
-    // generate report
-    // var states = registry.vstates,
-    //     ends = registry.ends;
-    // var c, l, state, pointer, end;
-
-    // for (c = -1, l = states.length; l--;) {
-    //     state = states[++c];
-    //     pointer = state.pointer.first;
-    //     if (!pointer) {
-    //         console.log('no transitions in ', state.id);
-    //     }
-    //     for (;pointer; pointer = pointer[0]) {
-    //         item = pointer[1];
-    //         target = item[0];
-    //         end = target.id in ends ?
-    //                 ' end: ' + ends[target.id].join(',') : '';
-
-    //         console.log(state.id, ':', item[1], '->', target.id, end);
-    //     }
-    // }
-    // console.log(registry.vstates);
-    // console.log(queue, pending);
     
 }
 
@@ -786,24 +676,30 @@ function Registry(map, tokenizer) {
     this.tokenizer = tokenizer;
     this.map = map;
 
+    this.ruleLookup = {};
     this.productions = {};
-    this.lexemes = {};
+    this.closureItems = {};
 
-    this.stateIndex = {};
-    this.vstateIdGen = 0;
-    this.vstateLookup = {};
-    this.vstates = [];
-    this.ends = {};
+    // this.productions = {};
+    // this.productionNames = [];
+    // this.lexemes = {};
+    // this.closures = {};
 
+    // this.stateIndex = {};
+    // this.vstateIdGen = 0;
+    // this.vstateLookup = {};
+    // this.vstates = [];
+    // this.ends = {};
 
-    this.recursions = {};
+    // this.rules = {};
+    // this.recursions = {};
     
     this.terminals = [];
     this.terminalLookup = {};
 
-    this.symbolGen = 0;
-    this.symbol = {};
-    this.lookup = {};
+    // this.symbolGen = 0;
+    // this.symbol = {};
+    // this.lookup = {};
 
     this.stateTagIdGen = 0;
     this.stateTagId = {};
@@ -925,87 +821,120 @@ Registry.prototype = {
     registerRule: function (name, mask, terminals) {
         var this$1 = this;
 
-        var states = this.stateIndex,
-            recursions = this.recursions,
-            productions = this.productions,
-            lexemes = this.lexemes,
-            rules = [],
-            rl = 0,
+        var closureItems = this.closureItems,
+            rules = this.productions,
+            ruleIndex = this.ruleLookup,
             c = -1,
-            total = mask.length,
-            l = total + 1;
-        var items, id, lexeme, list, index;
+            l = mask.length + 1,
+            before = null,
+            params = 0;
+        var items, state, item;
 
-        if (!(name in productions)) {
-            productions[name] = [];
-            lexemes[name] = [];
+        if (!(name in rules)) {
+            rules[name] = [];
         }
 
-        list = productions[name];
-        index = list.length;
-        list[index] = rules;
-        lexemes[name][index] = mask;
-        
-        //console.log("------------------------------- Rules for: " + name);
+        rules = rules[name];
 
         for (; l--;) {
-            lexeme = mask[++c];
-
             items = mask.slice(0);
-            items.splice(c, 0, '.');
-            id = this$1.hashState(name + ' -> ' + items.join(' '));
+            items.splice(++c, 0, '.');
+            state = this$1.hashState(name + '->' + items.join(' '));
 
-            if (id in states) {
-                throw new Error("Duplicate Grammar Rule found " +
-                            this$1.lookupState(id) + " in production: " +
-                            this$1.map.lookupSymbol(name));
+            // first
+            if (!c) {
+                if (state in ruleIndex) {
+                    throw new Error("Duplicate Grammar Rule found " +
+                                    this$1.lookupState(state) +
+                                    " in production: " +
+                                    this$1.map.lookupSymbol(name));
+                }
+                ruleIndex[state] = name;
+
+                // register production state
+                rules[rules.length] = state;
             }
 
-            rules[rl++] = id;
+            closureItems[state] =
+                item = {
+                    id: state,
+                    production: name,
+                    before: null,
+                    after: null,
+                    terminal: false,
+                    token: null
+                };
 
-            states[id] = id;
-
-            // non-terminal
-            if (l && !(c in terminals)) {
-                //console.log("recusion? ", id, " is ", lexeme);
-                recursions[id] = lexeme;
+            if (before) {
+                item.before = before.id;
+                before.after = state;
             }
+            
+            before = item;
 
+            // has token lookup
+            if (l) {
+                params++;
+                item.terminal = c in terminals;
+                item.token = mask[c];
+            }
+            else {
+                item.params = params;
+            }
+            
         }
 
     },
 
-    getRules: function (production) {
-        var list = this.productions;
+    createClosure: function (items) {
+        var definitions = this.closureItems,
+            productionItems = this.productions,
+            created = {},
+            processed = {},
+            tokens = [],
+            tl = 0,
+            c = -1,
+            l = items.length;
+        var item, token, terminal, list, additional;
 
-        return production in list ?
-                    [list[production], this.lexemes[production]] : null;
-    },
+        items = items.slice(0);
 
-    isRecursed: function (id) {
-        var recursions = this.recursions;
-        return id in recursions && recursions[id];
-    },
+        for (; l--;) {
+            item = items[++c];
+            if (item in created) {
+                items.splice(c--, 1);
+                continue;
+            }
+            created[item] = true;
+            item = definitions[item];
+            token = item.token;
+            terminal = item.terminal;
 
-    setEnd: function (id, production, params, ruleId) {
-        var ends = this.ends,
-            map = this.map,
-            state = this.vstateLookup[id];
+            if (token) {
+                
+                if (token in processed) {
+                    list = tokens[processed[token]][1];
+                    list[list.length] = item.after;
+                }
+                else {
+                    processed[token] = tl;
+                    tokens[tl++] = [token, [item.after]];
 
-        if (!(id in ends)) {
-            ends[id] = [production, params, ruleId];
+                    // non-terminal
+                    if (!terminal) {
+                        // recurse get additional production first states
+                        additional = productionItems[token];
+                        items.push.apply(items, additional);
+                        l += additional.length;
+
+                    }
+                }
+
+            }
         }
-        else if (ends[id][0] !== production) {
-            throw new Error("Reduce conflict! " + state.id +
-                                ":" + map.lookupSymbol(ends[id][0]) + ' <- ' +
-                                map.lookupSymbol(production));
-        }
-        
-    },
 
-    isEnd: function (id) {
-        var ends = this.ends;
-        return id in ends && ends[id];
+        return [items, tokens];
+
     }
 };
 
@@ -1026,8 +955,7 @@ function build(root, map, tokenizer, definitions, exclude) {
 
 
     map.reset();
-    
-    map.root = map.generateSymbol("$" + root);
+    map.setRoot(root);
 
     registry = new Registry(map, tokenizer);
 
@@ -1202,8 +1130,6 @@ BaseIterator.prototype = {
             endToken = map.endToken;
             
         var name, to, ref, lexeme, literal;
-
-        
         
         if (token) {
             name = token[0];
@@ -1306,10 +1232,9 @@ BaseIterator.prototype = {
         
         created.name = lookup[name];
         created.symbol = name;
-        created.rule = lookup[reduce[2]];
         last = null;
         
-        //console.log("reduce count? ", params, " from ", reduce);
+        //console.log("reduce count? ", state, "?", params, " from ", reduce, " buffer ", buffer.slice(0));
         
         for (; l--;) {
             item = buffer[--bl];
@@ -1356,7 +1281,6 @@ BaseIterator.prototype = {
                 created.useType('end');
                 created.last = litem;
                 created.value = [litem.value];
-                created.rule = lookup[map.root];
                 created.reduceCount = 1;
                 
                 me.params = created;
@@ -1369,7 +1293,7 @@ BaseIterator.prototype = {
             }
             
         }
-        
+        //console.log("reduced: ", state, ' <- ', created);
         buffer[bl++] = [state, created];
         me.returns = true;
         
@@ -1381,7 +1305,7 @@ BaseIterator.prototype = {
         me.pstate = state;
        
         // shift
-        //console.log('shift? ', name, 'lexeme', lexeme, ' in ', ref);
+        //console.log('shift? ', name, 'lexeme', lexeme, ' in ', state, ':', ref);
         if (name in ref) {
             return 1;
         
