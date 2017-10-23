@@ -158,8 +158,9 @@ Registry.prototype = {
             ruleIndex = this.ruleLookup,
             c = -1,
             l = mask.length + 1,
-            before = null;
-        var items, state, ruleId, item;
+            before = null,
+            params = 0;
+        var items, state, item;
 
         if (!(name in rules)) {
             rules[name] = [];
@@ -168,21 +169,19 @@ Registry.prototype = {
         rules = rules[name];
 
         for (; l--;) {
-            
             items = mask.slice(0);
             items.splice(++c, 0, '.');
-            state = this.hashState(items.join(' '));
+            state = this.hashState(name + '->' + items.join(' '));
 
             // first
             if (!c) {
-                ruleId = name + '->' + state;
-                if (ruleId in ruleIndex) {
+                if (state in ruleIndex) {
                     throw new Error("Duplicate Grammar Rule found " +
                                     this.lookupState(state) +
                                     " in production: " +
                                     this.map.lookupSymbol(name));
                 }
-                ruleIndex[ruleId] = name;
+                ruleIndex[state] = name;
 
                 // register production state
                 rules[rules.length] = state;
@@ -207,8 +206,12 @@ Registry.prototype = {
 
             // has token lookup
             if (l) {
+                params++;
                 item.terminal = c in terminals;
                 item.token = mask[c];
+            }
+            else {
+                item.params = params;
             }
             
         }
@@ -265,45 +268,6 @@ Registry.prototype = {
         return [items, tokens];
 
     }
-
-    // getRuleProduction: function (id) {
-    //     var rules = this.rules;
-    //     return id in rules ? rules[id] : null;
-
-    // },
-
-    // getRules: function (production) {
-    //     var list = this.productions;
-
-    //     return production in list ?
-    //                 [list[production], this.lexemes[production]] : null;
-    // },
-
-    // isRecursed: function (id) {
-    //     var recursions = this.recursions;
-    //     return id in recursions && recursions[id];
-    // },
-
-    // setEnd: function (id, production, params, ruleId) {
-    //     var ends = this.ends,
-    //         map = this.map,
-    //         state = this.vstateLookup[id];
-
-    //     if (!(id in ends)) {
-    //         ends[id] = [production, params, ruleId];
-    //     }
-    //     else if (ends[id][0] !== production) {
-    //         throw new Error("Reduce conflict! " + state.id +
-    //                             ":" + map.lookupSymbol(ends[id][0]) + ' <- ' +
-    //                             map.lookupSymbol(production));
-    //     }
-        
-    // },
-
-    // isEnd: function (id) {
-    //     var ends = this.ends;
-    //     return id in ends && ends[id];
-    // }
 };
 
 

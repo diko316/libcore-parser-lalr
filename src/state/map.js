@@ -10,7 +10,7 @@ import {
         } from "libcore";
 
 function StateMap(debug) {
-    var start = "$",
+    var start = "0",
         end = "End",
         tokenEnd = "$",
         states = {};
@@ -193,7 +193,7 @@ StateMap.prototype = {
     importStates: function (definition) {
         var isObject = object,
             isString = string;
-        var start, states, ends, root, exclude, symbol, reducers,
+        var start, states, ends, root, exclude, symbol, reducers, augmentedRoot,
             list, c, l;
         
         if (!isObject(definition)) {
@@ -210,6 +210,12 @@ StateMap.prototype = {
         if (!isString(root)) {
             throw new Error(
                         'Invalid "root" grammar rule in definition parameter.');
+        }
+
+        augmentedRoot = definition.augmentedRoot;
+        if (!isString(augmentedRoot)) {
+            throw new Error(
+            'Invalid "augmentedRoot" grammar rule in definition parameter.');
         }
         
         start = definition.start;
@@ -242,7 +248,9 @@ StateMap.prototype = {
         for (c = -1, l = list.length; l--;) {
             exclude[list[++c]] = true;
         }
-        
+
+
+        this.augmentedRoot = augmentedRoot;
         this.root = root;
         this.start = start;
         this.states = states;
@@ -270,6 +278,7 @@ StateMap.prototype = {
 
 
         return {
+                augmentedRoot: this.augmentedRoot,
                 root: this.root,
                 start: this.start,
                 states: this.states,

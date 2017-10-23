@@ -22,7 +22,6 @@ export
             terminal = definitions[++c];
 
             if (!isRegex(terminal)) {
-                console.log(terminal);
                 throw new Error("Invalid Terminal pattern: " + terminal);
             }
 

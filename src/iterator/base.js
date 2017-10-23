@@ -80,8 +80,6 @@ BaseIterator.prototype = {
             endToken = map.endToken;
             
         var name, to, ref, lexeme, literal;
-
-        
         
         if (token) {
             name = token[0];
@@ -184,10 +182,9 @@ BaseIterator.prototype = {
         
         created.name = lookup[name];
         created.symbol = name;
-        created.rule = lookup[reduce[2]];
         last = null;
         
-        //console.log("reduce count? ", params, " from ", reduce);
+        //console.log("reduce count? ", state, "?", params, " from ", reduce, " buffer ", buffer.slice(0));
         
         for (; l--;) {
             item = buffer[--bl];
@@ -234,7 +231,6 @@ BaseIterator.prototype = {
                 created.useType('end');
                 created.last = litem;
                 created.value = [litem.value];
-                created.rule = lookup[map.root];
                 created.reduceCount = 1;
                 
                 me.params = created;
@@ -247,7 +243,7 @@ BaseIterator.prototype = {
             }
             
         }
-        
+        //console.log("reduced: ", state, ' <- ', created);
         buffer[bl++] = [state, created];
         me.returns = true;
         
@@ -259,7 +255,7 @@ BaseIterator.prototype = {
         me.pstate = state;
        
         // shift
-        //console.log('shift? ', name, 'lexeme', lexeme, ' in ', ref);
+        //console.log('shift? ', name, 'lexeme', lexeme, ' in ', state, ':', ref);
         if (name in ref) {
             return 1;
         

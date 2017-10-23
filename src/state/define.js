@@ -20,11 +20,11 @@ function define(registry) {
         states = [],
         sl = 0;
 
-    var list, c, l, item, items, token, total, tokens, transitionToken,
-        stateBefore, state;
+    var list, c, l, item, items, token, total, tokens, id, lookup,
+        stateBefore, state, end;
 
 
-    var limit = 100;
+    //var limit = 100;
 
     
     for (; defineState;) {
@@ -67,7 +67,7 @@ function define(registry) {
             item = stateDefineQueue.shift();
             stateBefore = item[0];
             list = item[1];
-            transitionToken = item[2];
+            token = item[2];
             item = registry.createClosure(list);
             items = item[0];
             tokens = item[1];
@@ -88,7 +88,7 @@ function define(registry) {
                 sl = total++;
                 state = states[sl] = new StateClass(registry,
                                                     sl.toString(32),
-                                                    list);
+                                                    items);
 
                 // queue transitions
                 c = -1;
@@ -97,16 +97,25 @@ function define(registry) {
                     item = tokens[++c];
                     stateDefineQueue.push([state, item[1], item[0]]);
                 }
+
+                // apply end state for each end items
+                c = -1;
+                l = items.length;
+                for (; l--;) {
+                    item = closureDefinitions[items[++c]];
+                    if (!item.after) {
+                        state.setEnd(item);
+                    }
+                }
+
             }
 
-            // apply end state for each end items
-            c = -1;
-            l = list.length;
-            for (; l--;) {
-                console.log('point ', stateBefore.id, ':', transitionToken, '->', state.id);
-            }
-            //console.log('point ', stateBefore, ':', transitionToken, ' -> ', list);
+            
 
+
+
+            // point state before to new state
+            stateBefore.pointTo(token, state);
 
             // create next state
             defineState = stateDefineQueue.first ?
@@ -121,15 +130,32 @@ function define(registry) {
 
         
 
-        if (!--limit) {
-            console.log("limit reached");
-            break;
-        }
+        // if (!--limit) {
+        //     console.log("limit reached");
+        //     break;
+        // }
     }
 
-    console.log("states: ", states);
-    console.log("registry ", registry);
-    
+    // finalize map
+    sl = states.length;
+    for (; sl--;) {
+        item = states[sl];
+        id = item.id;
+        state = map.createState(id);
+        tokens = item.tokens;
+        lookup = item.pointers;
+        c = -1;
+        l = tokens.length;
+        for (; l--;) {
+            token = tokens[++c];
+            map.createPointer(id, token, lookup[token].id);
+        }
+        
+        item = item.end;
+        if (item) {
+            map.setReduceState(id, item[1], item[0], item[2]);
+        }
+    }
     
 }
 

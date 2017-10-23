@@ -204,22 +204,26 @@ var simple = true,
     subject = 'Buang.diko';
 var parser;
 
-//simple = false;
-//debug = false;
-tryParse = false;
+simple = false;
+debug = false;
+//tryParse = false;
 
 //console.log(parser);
 
 testImport = true;
 
- //subject = 'Buang = (Chaching = Buang.Buang)';
+//subject = 'Buang = (Chaching = Buang.Buang)';
+//subject = 'Buang = Chaching = Buang.Buang';
 
 //subject = 'Buang = 2 * Buang(4)';
-// subject = '2 * Buang';
+//subject = '2 * Buang';
 //subject = 'Buang.test().name';
 
 //subject = 'Chaching = Buang + 1 * 2 -> test';
-subject = '1 + 2 * 3';
+//subject = 'Chaching = Buang + 1 * 2 -> test()';
+subject = 'Chaching = Buang + 1 * 2 -> test(2)';
+//subject = '1 + 2 * 3';
+//subject = 'Chaching = 1 + 2';
 
 
 
@@ -253,10 +257,10 @@ parser = Parser.define("Expr",
             ],
 
     "Operand",  [
-                "Basic"
-                // ["Basic", "Arguments"],
-                // ["Operand", /\./, "Basic"],
-                // ["Operand", /\[/, "Expr", /\]/]
+                "Basic",
+                ["Basic", "Arguments"],
+                ["Operand", /\./, "Basic"],
+                ["Operand", /\[/, "Expr", /\]/]
             ],
 
     "Arguments",[
@@ -649,6 +653,7 @@ var json;
 if (testImport) {
     console.log("testing load and import");
     json = parser.toJSON();
+    console.log("toJSON!");
     parser = Parser.load(json);
 
     console.log("string length: ", json.length);
