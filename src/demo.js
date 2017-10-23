@@ -671,7 +671,7 @@ if (tryParse) {
     for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
         console.log(lexeme.name,
                     lexeme.value,
-                    lexeme.reduceCount);
+                    lexeme.rule);
     }
 
     console.log(iterator);

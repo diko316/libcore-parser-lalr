@@ -14,14 +14,13 @@ function define(registry) {
         STATE_END = 0,
         STATE_CREATE_INITIAL = 1,
         STATE_CREATE_GOTO = 2,
-        STATE_CREATE_STATE = 3,
         defineState = STATE_CREATE_INITIAL,
         production = map.augmentedRoot,
         states = [],
         sl = 0;
 
     var list, c, l, item, items, token, total, tokens, id, lookup,
-        stateBefore, state, end;
+        stateBefore, state;
 
 
     //var limit = 100;

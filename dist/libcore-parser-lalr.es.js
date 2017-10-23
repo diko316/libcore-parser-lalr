@@ -450,7 +450,7 @@ State.prototype = {
                                 " from state: ", this.id);
         }
         
-        this.end = [item.params, item.production, item.id];
+        this.end = [item.params, item.production, item.index];
     }
 
 };
@@ -522,14 +522,13 @@ function define$1(registry) {
         STATE_END = 0,
         STATE_CREATE_INITIAL = 1,
         STATE_CREATE_GOTO = 2,
-        STATE_CREATE_STATE = 3,
         defineState = STATE_CREATE_INITIAL,
         production = map.augmentedRoot,
         states = [],
         sl = 0;
 
     var list, c, l, item, items, token, total, tokens, id, lookup,
-        stateBefore, state, end;
+        stateBefore, state;
 
 
     //var limit = 100;
@@ -823,13 +822,14 @@ Registry.prototype = {
             l = mask.length + 1,
             before = null,
             params = 0;
-        var items, state, item;
+        var items, state, item, ruleCount;
 
         if (!(name in rules)) {
             rules[name] = [];
         }
 
         rules = rules[name];
+        ruleCount = rules.length + 1;
 
         for (; l--;) {
             items = mask.slice(0);
@@ -854,6 +854,7 @@ Registry.prototype = {
                 item = {
                     id: state,
                     production: name,
+                    index: ruleCount,
                     before: null,
                     after: null,
                     terminal: false,
@@ -1218,15 +1219,18 @@ BaseIterator.prototype = {
             reduce = map.lookupReducer(ends[state]),
             name = reduce[0],
             params = reduce[1],
+            ruleNumber = reduce[2],
             l = params,
             endIndex = l - 1,
             created = new Lexeme('nonterminal'),
-            values = [];
+            values = [],
+            literal = lookup[name];
             
         var litem, item, from, to, ref, last;
         
-        created.name = lookup[name];
+        created.name = literal;
         created.symbol = name;
+        created.rule = ruleNumber + ':' + literal;
         last = null;
         
         //console.log("reduce count? ", state, "?", params, " from ", reduce, " buffer ", buffer.slice(0));

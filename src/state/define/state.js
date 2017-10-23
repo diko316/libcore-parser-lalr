@@ -62,7 +62,7 @@ State.prototype = {
                                 " from state: ", this.id);
         }
         
-        this.end = [item.params, item.production, item.id];
+        this.end = [item.params, item.production, item.index];
     }
 
 };

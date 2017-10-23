@@ -160,13 +160,14 @@ Registry.prototype = {
             l = mask.length + 1,
             before = null,
             params = 0;
-        var items, state, item;
+        var items, state, item, ruleCount;
 
         if (!(name in rules)) {
             rules[name] = [];
         }
 
         rules = rules[name];
+        ruleCount = rules.length + 1;
 
         for (; l--;) {
             items = mask.slice(0);
@@ -191,6 +192,7 @@ Registry.prototype = {
                 item = {
                     id: state,
                     production: name,
+                    index: ruleCount,
                     before: null,
                     after: null,
                     terminal: false,

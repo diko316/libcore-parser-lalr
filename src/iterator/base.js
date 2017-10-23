@@ -173,15 +173,18 @@ BaseIterator.prototype = {
             reduce = map.lookupReducer(ends[state]),
             name = reduce[0],
             params = reduce[1],
+            ruleNumber = reduce[2],
             l = params,
             endIndex = l - 1,
             created = new Lexeme('nonterminal'),
-            values = [];
+            values = [],
+            literal = lookup[name];
             
         var litem, item, from, to, ref, last;
         
-        created.name = lookup[name];
+        created.name = literal;
         created.symbol = name;
+        created.rule = ruleNumber + ':' + literal;
         last = null;
         
         //console.log("reduce count? ", state, "?", params, " from ", reduce, " buffer ", buffer.slice(0));
