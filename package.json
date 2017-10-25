@@ -51,7 +51,7 @@
     "rollup-plugin-uglify": "^2.0.1"
   },
   "optionalDependencies": {
-    "libcore": "0.3.7",
+    "libcore": "0.3.8",
     "libcore-tokenizer": "0.1.8"
   }
 }
