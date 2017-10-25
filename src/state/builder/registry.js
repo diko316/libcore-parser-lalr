@@ -14,26 +14,8 @@ function Registry(map, tokenizer) {
     this.productions = {};
     this.closureItems = {};
 
-    // this.productions = {};
-    // this.productionNames = [];
-    // this.lexemes = {};
-    // this.closures = {};
-
-    // this.stateIndex = {};
-    // this.vstateIdGen = 0;
-    // this.vstateLookup = {};
-    // this.vstates = [];
-    // this.ends = {};
-
-    // this.rules = {};
-    // this.recursions = {};
-    
     this.terminals = [];
     this.terminalLookup = {};
-
-    // this.symbolGen = 0;
-    // this.symbol = {};
-    // this.lookup = {};
 
     this.stateTagIdGen = 0;
     this.stateTagId = {};

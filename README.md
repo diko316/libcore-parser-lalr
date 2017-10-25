@@ -36,9 +36,17 @@ var parser = lalr.define("Expr", // Root production
 
                     "whitespace", [/[ \r\n\t]+/],
 
+                    "identifier", [/[a-zA-Z\_\$][a-zA-Z0-9\_\$]*/],
+
                     // Grammar rules
                     "Expr", [
-                                "Add"                   // Expr1 rule
+                                "Ass"                   // 1:Expr rule
+                            ],
+
+                    "Ass",  [
+                                "Add",                  // 1:Ass rule
+                                                        // 2:Ass rule
+                                ["identifier", /\=/, "Ass"]
                             ],
 
                     "Add",  [
@@ -53,6 +61,7 @@ var parser = lalr.define("Expr", // Root production
                                 "number",               // Unit1 rule
                                 ["(", "Expr", ")"]      // Unit2 rule
                             ]
+                    
                 ],
                 // ignore these tokens
                 [
