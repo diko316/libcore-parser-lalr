@@ -22,9 +22,6 @@ function define(registry) {
     var list, c, l, item, items, token, total, tokens, id, lookup,
         stateBefore, state;
 
-
-    //var limit = 100;
-
     
     for (; defineState;) {
         switch (defineState) {
@@ -127,12 +124,6 @@ function define(registry) {
             defineState = null;
         }
 
-        
-
-        // if (!--limit) {
-        //     console.log("limit reached");
-        //     break;
-        // }
     }
 
     // finalize map
@@ -145,9 +136,15 @@ function define(registry) {
         lookup = item.pointers;
         c = -1;
         l = tokens.length;
+
+        //state[">>"] = item.lookaheads;
+        console.log(item.startups);
+
         for (; l--;) {
             token = tokens[++c];
-            map.createPointer(id, token, lookup[token].id);
+            map.createPointer(id,
+                            token,
+                            lookup[token].id);
         }
         
         item = item.end;

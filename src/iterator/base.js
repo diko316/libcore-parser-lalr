@@ -90,8 +90,6 @@ BaseIterator.prototype = {
                 me.params = to;
                 return 1;
             }
-
-            
             
             lexeme = new Lexeme('terminal');
 
@@ -104,19 +102,21 @@ BaseIterator.prototype = {
                 literal = map.symbol[name];
             }
 
-            
+            ref = states[state];
             
             lexeme.name = literal;
             lexeme.symbol = name;
             lexeme.value = token[1];
             lexeme.from = from;
             lexeme.to = to;
+            lexeme.lookaheads = ref[">>"];
+            //console.log("token lookahead! ", literal, ref);
             
             me.nextTokenIndex = to;
             me.params = lexeme;
             
             // found shift state
-            ref = states[state];
+            
 
             //console.log("token accepted! ", token, name, ' shift? ', ref);
 
@@ -185,6 +185,7 @@ BaseIterator.prototype = {
         created.name = literal;
         created.symbol = name;
         created.rule = ruleNumber + ':' + literal;
+        created.reduceArguments = params;
         last = null;
         
         //console.log("reduce count? ", state, "?", params, " from ", reduce, " buffer ", buffer.slice(0));
@@ -219,10 +220,11 @@ BaseIterator.prototype = {
         created.to = to;
         
         buffer.length = bl;
+
+        //ref = states[state];
+        //created.lookaheads = ref[">>"];
         
         me.current = created;
-        
-        created.reduceCount = params;
         
         // only if it ended
         if (name === map.augmentedRoot) {
@@ -256,6 +258,8 @@ BaseIterator.prototype = {
         
         name = lexeme.symbol;
         me.pstate = state;
+
+
        
         // shift
         //console.log('shift? ', name, 'lexeme', lexeme, ' in ', state, ':', ref);

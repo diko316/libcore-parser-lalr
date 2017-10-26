@@ -58,6 +58,7 @@ StateMap.prototype = {
         if (id in states) {
             return states[id];
         }
+
         return (states[id] = {});
     },
     

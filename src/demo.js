@@ -508,7 +508,7 @@ parser = Parser.define("Joqx",
         
         "Primary",          [
                                 "Literal",
-                                "Updatable",
+                                //"Updatable",
                             
                                 "Array",
                                 "Object",
@@ -519,7 +519,7 @@ parser = Parser.define("Joqx",
                             ],
 
         "Updatable",        [
-                                //"Primary",
+                                "Primary",
                                 "identifier",
                                 ["Updatable", ".", "identifier"],
                                 ["Updatable", "[", "Javascript", "]"]
@@ -528,7 +528,6 @@ parser = Parser.define("Joqx",
         
 
         "PostFix",          [
-                                "Primary",
                                 "Updatable",
                                 ["Updatable", "++"],
                                 ["Updatable", "--"]
@@ -671,9 +670,11 @@ if (tryParse) {
     iterator.set(subject);
 
     for (lexeme = iterator.next(); lexeme; lexeme = iterator.next()) {
-        console.log(lexeme.name,
-                    lexeme.value,
-                    lexeme.rule);
+        // console.log(lexeme.name,
+        //             lexeme.value,
+        //             lexeme.rule);
+
+        console.log(lexeme);
     }
 
     console.log(iterator);

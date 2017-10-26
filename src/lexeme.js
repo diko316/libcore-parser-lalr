@@ -22,7 +22,7 @@ Lexeme.prototype = {
     name: null,
     rule: null,
     value: null,
-    reduceCount: 0,
+    reduceArguments: 0,
     from: 0,
     to: 0,
     
