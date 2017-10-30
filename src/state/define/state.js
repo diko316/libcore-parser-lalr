@@ -1,9 +1,9 @@
 'use strict';
 
 function State(registry, id, items) {
-    var definitions = registry.closureItems,
-        c = -1,
-        l = items.length;
+    // var definitions = registry.closureItems,
+    //     c = -1,
+    //     l = items.length;
 
     this.id = id;
     this.registry = registry;
@@ -12,12 +12,12 @@ function State(registry, id, items) {
 
     this.tokens = [];
     this.pointers = {};
-    this.lookaheads = [];
-    this.startups = [];
+    // this.lookaheads = [];
+    // this.startups = [];
 
-    for (; l--;) {
-        this.createTokenLookAhead(definitions[items[++c]]);
-    }
+    // for (; l--;) {
+    //     this.createTokenLookAhead(definitions[items[++c]]);
+    // }
 }
 
 State.prototype = {
@@ -45,15 +45,15 @@ State.prototype = {
         return false;
     },
 
-    createTokenLookAhead: function (item) {
-        var list = this.startups;
+    // createTokenLookAhead: function (item) {
+    //     var list = this.startups;
 
-        // is a startup
-        if (!item.before) {
-            list[list.length] = [item.token, item.production];
-        }
+    //     // is a startup
+    //     if (!item.before) {
+    //         list[list.length] = [item.token, item.production];
+    //     }
 
-    },
+    // },
 
     pointTo: function (token, targetState) {
         var names = this.tokens,

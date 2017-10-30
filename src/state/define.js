@@ -138,7 +138,7 @@ function define(registry) {
         l = tokens.length;
 
         //state[">>"] = item.lookaheads;
-        console.log(item.startups);
+        //console.log(item.startups);
 
         for (; l--;) {
             token = tokens[++c];
